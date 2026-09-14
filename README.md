@@ -1,0 +1,68 @@
+# Amazon Basin Explorer
+
+A satellite map that shows only the Amazon river system: the main stem, every tributary down to the
+smallest stream in the HydroRIVERS model, and a strip of imagery around each one. Everything else
+is masked. Zoomed out, the whole basin reads as a pixel-edged silhouette against the void; zoom in
+and the corridors resolve around each river, with names from OpenStreetMap.
+
+## Run it
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. Scroll to zoom, drag to pan. Top right: dark/light toggle and the
+"visible land" slider (how wide the strip of land around each river is). Bottom right: an overview
+minimap that appears from the 50-mile scale in, and the scale bar.
+
+## How it works
+
+- **Imagery**: Esri World Imagery tiles, requested through a custom `masked://` tile protocol
+  (`src/tiles.ts`). Each tile is checked against the reveal grid; tiles fully outside the corridors
+  are never fetched, partially covered tiles are clipped cell by cell on a canvas.
+- **Reveal grid** (`src/mask.ts`): one ~300 m grid over the basin, shipped as `public/mask/finest.bin.gz`
+  (about 20 MB). Each cell stores how deep inside a river corridor it sits, so the corridor width can
+  be scaled live by the slider. Corridor width scales with river size, from 5 miles on the main stem
+  to 0.5 mile on creeks. Coarser zooms are derived in the browser by counting fine cells; a
+  zoomed-out cell shows when enough of its area is inside a corridor (`coarseFraction` in the index).
+- **Names**: `pipeline/build-labels.mjs` chains OpenStreetMap waterway ways by name, matches each to
+  the nearest HydroRIVERS reach to learn its size, generalises and smooths the path per zoom, and
+  writes vector tiles. Names of bigger rivers appear first as you zoom.
+- **Motion**: MapLibre's drag inertia, tuned heavier, plus a velocity-based scroll zoom in
+  `src/inertia.ts` so zooming glides to a stop too.
+- **Minimap** (`src/minimap.ts`): a canvas drawing of the basin silhouette, coastline and viewport,
+  built from the same reveal grid.
+
+Tuning knobs live in `pipeline/config.mjs`.
+
+## Data pipeline (run once; outputs are committed under `public/`)
+
+1. Download `HydroRIVERS_v10_sa_shp.zip` from https://www.hydrosheds.org/products/hydrorivers
+   (the file host sits behind a browser check, so download it in a browser) and unzip it into
+   `data/raw/HydroRIVERS_v10_sa_shp/`.
+2. `npm run data:rivers` extracts the Amazon basin (745k reaches) to `data/work/amazon.ndjson`.
+3. `npm run data:tiles` builds `public/mask/`.
+4. `npm run data:names` fetches named waterways from Overpass in chunks to
+   `data/work/osm-names.ndjson`. It is resumable and slow (the public servers rate-limit).
+5. `npm run data:labels` builds `public/labels/`.
+6. `node pipeline/build-outline.mjs` builds the coastline from Natural Earth 1:10m countries
+   (`data/raw/ne_10m_admin_0_countries.geojson`, from github.com/nvkelso/natural-earth-vector).
+
+### Fonts
+
+Labels are set in Arial. MapLibre needs fonts pre-rasterised into glyph files, and Arial is not
+redistributable, so those files are **not** in the repo. Generate them on a machine that has Arial:
+
+```bash
+node pipeline/build-glyphs.mjs "C:/Windows/Fonts/arial.ttf" "Arial Regular"
+```
+
+Any TrueType font works the same way; change `text-font` in `src/main.ts` to match the stack name.
+Open Sans glyphs (`public/fonts/Open Sans *`) are included as a fallback.
+
+## Credits
+
+Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community. River network:
+HydroRIVERS v1.0 (Lehner & Grill 2013, CC BY 4.0). Names © OpenStreetMap contributors (ODbL).
+Coastline: Natural Earth (public domain). Open Sans glyphs via fonts.openmaptiles.org.

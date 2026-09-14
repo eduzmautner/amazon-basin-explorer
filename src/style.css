@@ -1,0 +1,74 @@
+:root {
+  --bg: #fbfaf9;
+  --fg: #1f2421;
+  --muted: rgba(31, 36, 33, 0.55);
+  --panel: rgba(251, 250, 249, 0.8);
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --bg: #050605;
+  --fg: #e8ebe6;
+  --muted: rgba(232, 235, 230, 0.55);
+  --panel: rgba(5, 6, 5, 0.7);
+  color-scheme: dark;
+}
+html, body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden;
+}
+#map { position: absolute; inset: 0; background: var(--bg); }
+#ui {
+  position: absolute; top: 18px; left: 20px; right: 20px; display: flex;
+  justify-content: space-between; align-items: flex-start; pointer-events: none; z-index: 5;
+}
+#brand {
+  pointer-events: auto; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; line-height: 1.3;
+  /* readable over imagery as well as over the mask */
+  padding: 8px 12px; border-radius: 8px; background: var(--panel); backdrop-filter: blur(6px);
+}
+#brand span { display: block; font-size: 10px; letter-spacing: 0.3em; font-weight: 400; color: var(--muted); }
+#theme {
+  pointer-events: auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--muted);
+  background: var(--panel); color: var(--fg); cursor: pointer; backdrop-filter: blur(6px);
+  display: grid; place-items: center; transition: transform .15s ease; padding: 0;
+}
+#theme:hover { transform: scale(1.06); }
+#theme::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--fg); box-shadow: inset -5px -2px 0 0 var(--panel); }
+:root[data-theme='dark'] #theme::before { box-shadow: none; }
+#hint {
+  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 11px;
+  letter-spacing: 0.08em; color: var(--muted); pointer-events: none; transition: opacity 1.2s ease; white-space: nowrap; z-index: 5;
+  padding: 6px 12px; border-radius: 999px; background: var(--panel); backdrop-filter: blur(6px);
+}
+#hint.fade { opacity: 0; }
+.maplibregl-ctrl-attrib { background: var(--panel) !important; color: var(--muted) !important; font-size: 10px !important; }
+.maplibregl-ctrl-attrib a { color: var(--muted) !important; }
+.maplibregl-canvas:focus { outline: none; }
+
+/* scale bar */
+.maplibregl-ctrl-scale {
+  background: var(--bg) !important; color: var(--fg) !important; border: 1px solid var(--fg) !important; border-top: none !important;
+  font-size: 10px !important; letter-spacing: 0.06em; padding: 1px 6px !important;
+}
+.maplibregl-ctrl-bottom-right { margin: 0 12px 12px 0; }
+.maplibregl-ctrl-bottom-left { margin: 0 0 12px 12px; }
+
+/* controls (top right) */
+#controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: auto; }
+#visible-control {
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border-radius: 8px;
+  background: var(--panel); backdrop-filter: blur(6px); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+}
+#visible-control b { color: var(--fg); font-weight: 600; margin-left: 4px; }
+#visible { width: 150px; margin: 0; accent-color: var(--fg); cursor: pointer; }
+#loading {
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 6; background: var(--bg);
+  font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted);
+}
+#loading[hidden] { display: none; }
+
+/* overview minimap (bottom right, above the scale bar) */
+/* same right margin as MapLibre gives the scale bar (10px), so their right edges line up */
+.maplibregl-ctrl.minimap { margin: 0 10px 8px 0 !important; line-height: 0; border: 1px solid var(--fg); background: var(--bg); }
+.maplibregl-ctrl.minimap.minimap-hidden { display: none; }
+.maplibregl-ctrl.minimap canvas { display: block; }

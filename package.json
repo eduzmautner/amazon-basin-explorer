@@ -1,0 +1,29 @@
+{
+  "name": "amazon-explorer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "data:names": "node pipeline/fetch-osm-names.mjs",
+    "data:rivers": "node --max-old-space-size=8192 pipeline/extract-amazon.mjs",
+    "data:tiles": "node --max-old-space-size=8192 pipeline/build-mask.mjs",
+    "data:labels": "node --max-old-space-size=8192 pipeline/build-labels.mjs"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.6.0"
+  },
+  "devDependencies": {
+    "@mapbox/tiny-sdf": "^2.2.0",
+    "@napi-rs/canvas": "^1.0.9",
+    "@types/geojson": "^7946.0.16",
+    "geojson-vt": "^4.0.2",
+    "polygon-clipping": "^0.15.7",
+    "shapefile": "^0.6.6",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vt-pbf": "^3.1.3"
+  }
+}

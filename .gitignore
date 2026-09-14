@@ -1,0 +1,8 @@
+node_modules
+dist
+data/raw
+data/work
+*.zip
+.claude/
+# Arial glyphs are generated from the Windows font (see README); not redistributed
+public/fonts/Arial*
