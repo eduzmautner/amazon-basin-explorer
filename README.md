@@ -51,15 +51,22 @@ Tuning knobs live in `pipeline/config.mjs`.
 
 ### Fonts
 
-Labels are set in Arial. MapLibre needs fonts pre-rasterised into glyph files, and Arial is not
-redistributable, so those files are **not** in the repo. Generate them on a machine that has Arial:
+Labels are set in Liberation Sans (SIL Open Font License), the metric-compatible twin of Arial.
+MapLibre needs fonts pre-rasterised into glyph files; `pipeline/build-glyphs.mjs` makes them from
+any TrueType file:
 
 ```bash
-node pipeline/build-glyphs.mjs "C:/Windows/Fonts/arial.ttf" "Arial Regular"
+node pipeline/build-glyphs.mjs path/to/Font.ttf "Font Name Regular"
 ```
 
-Any TrueType font works the same way; change `text-font` in `src/main.ts` to match the stack name.
-Open Sans glyphs (`public/fonts/Open Sans *`) are included as a fallback.
+then set `text-font` in `src/main.ts` to the stack name. Arial itself is not redistributable, so
+Arial glyphs are git-ignored; generate them locally if you want the real thing.
+
+## Deploying
+
+Pushes to `main` build the site and publish it to GitHub Pages via `.github/workflows/pages.yml`
+(the repo's Pages source must be set to "GitHub Actions"). Production builds use the
+`/amazon-basin-explorer/` base path from `vite.config.ts`.
 
 ## Credits
 

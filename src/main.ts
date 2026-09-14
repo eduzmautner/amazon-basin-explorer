@@ -5,6 +5,7 @@ import { Mask } from './mask';
 import { registerLabelsProtocol, registerMaskedProtocol, TILE_PX } from './tiles';
 import { installInertialZoom } from './inertia';
 import { MiniMapControl } from './minimap';
+import { BASE } from './base';
 
 const THEME_KEY = 'amazon-explorer-theme';
 const root = document.documentElement;
@@ -32,10 +33,10 @@ function applyTheme(t: Theme) {
 async function boot() {
   applyTheme(currentTheme());
   const loading = document.getElementById('loading')!;
-  const mask = await Mask.load('/mask/', (msg) => { loading.textContent = msg; });
+  const mask = await Mask.load(BASE + 'mask/', (msg) => { loading.textContent = msg; });
   loading.hidden = true;
   registerMaskedProtocol(mask);
-  const labels = await registerLabelsProtocol();
+  const labels = await registerLabelsProtocol(BASE + 'labels/');
 
   map = new maplibregl.Map({
     container: 'map',
@@ -51,7 +52,7 @@ async function boot() {
           attribution:
             'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors',
         },
-        outline: { type: 'geojson', data: '/outline.json' },
+        outline: { type: 'geojson', data: BASE + 'outline.json' },
         labels: {
           type: 'vector',
           tiles: ['labels://{z}/{x}/{y}'],
@@ -59,7 +60,7 @@ async function boot() {
           maxzoom: labels.maxzoom,
         },
       },
-      glyphs: '/fonts/{fontstack}/{range}.pbf',
+      glyphs: BASE + 'fonts/{fontstack}/{range}.pbf',
       layers: [
         { id: 'bg', type: 'background', paint: { 'background-color': bgColor() } },
         { id: 'imagery', type: 'raster', source: 'imagery', paint: { 'raster-fade-duration': 400 } },
@@ -80,7 +81,8 @@ async function boot() {
             'symbol-placement': 'line',
             'symbol-spacing': 450,
             'text-field': ['get', 'name'],
-            'text-font': ['Arial Regular'], // glyphs generated locally by pipeline/build-glyphs.mjs
+            // Liberation Sans is the freely redistributable metric twin of Arial (see README, Fonts)
+            'text-font': ['Liberation Sans Regular'],
             'text-size': 14,
             'text-letter-spacing': 0.05,
             'text-max-angle': 60,

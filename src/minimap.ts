@@ -1,5 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import type { Mask } from './mask';
+import { BASE } from './base';
 
 const EARTH_CIRC = 40075016.686;
 const MILE_M = 1609.344;
@@ -35,7 +36,7 @@ export class MiniMapControl implements maplibregl.IControl {
     this.canvas.style.width = WIDTH + 'px';
     this.canvas.style.height = HEIGHT + 'px';
     this.container.appendChild(this.canvas);
-    fetch('/outline.json').then((r) => r.json()).then((f) => { this.coast = f.geometry.coordinates; this.redrawBase(); this.draw(); });
+    fetch(BASE + 'outline.json').then((r) => r.json()).then((f) => { this.coast = f.geometry.coordinates; this.redrawBase(); this.draw(); });
     this.redrawBase();
     map.on('move', this.draw);
     map.on('resize', this.draw);
