@@ -149,7 +149,6 @@ html, body {
   #controls { gap: 8px; }
   #visible { width: 120px; }
   #hint { display: none; }
-  .maplibregl-ctrl.minimap { display: none !important; }
   #river-panel {
     left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55vh;
     border-left: none; border-right: none; border-bottom: none;
@@ -158,7 +157,7 @@ html, body {
   /* 50% larger type than on desktop; the sheet scrolls rather than squeezing rows */
   #river-panel { font-size: 16.5px; padding: 14px 16px 16px; }
   #river-panel h2 { font-size: 22px; }
-  #river-panel td { padding: 7px 0; }
-  #river-panel .note { font-size: 15px; }
+  #river-panel td { padding: 9px 0; }
+  #river-panel .note { font-size: 7.5px; }
   #rp-close { font-size: 30px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
 }

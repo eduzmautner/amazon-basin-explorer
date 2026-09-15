@@ -6,10 +6,12 @@ const EARTH_CIRC = 40075016.686;
 const MILE_M = 1609.344;
 /** Basin overview extent (lon/lat). 3:2 in mercator at this latitude band. */
 const EXTENT = { w: -81, e: -46, s: -21.5, n: 6.5 };
-const WIDTH = 210, HEIGHT = 140;
+/** 3:2; smaller on phones so it does not crowd the bottom edge. */
+const SIZE = window.matchMedia("(max-width: 640px)").matches ? { w: 150, h: 100 } : { w: 210, h: 140 };
+const WIDTH = SIZE.w, HEIGHT = SIZE.h;
 /** Show the overview once the scale bar reads 50 mi or less, i.e. 100 mi no longer fits its 140 px. */
 const SHOW_BELOW_MILES = 100, SCALE_BAR_PX = 140;
-const SILHOUETTE_MASK_ZOOM = 11; // ~19 km cells: ~330 x 300 over the extent, plenty for 210 px
+const SILHOUETTE_MASK_ZOOM = 11; // ~19 km cells: ~330 x 300 over the extent, plenty for 210 px (or 150 on phones)
 
 const mercY = (lat: number) => { const s = Math.sin((lat * Math.PI) / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
 const mercX = (lon: number) => (lon + 180) / 360;
