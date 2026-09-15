@@ -90,7 +90,7 @@ async function boot() {
           // butt caps: rivers are pre-chained into continuous lines, so ends only meet at confluences,
           // and flat ends there stack less than round ones
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
-          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.45 },
+          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.4 },
         },
         {
           id: 'river-names',
