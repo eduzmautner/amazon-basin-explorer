@@ -182,8 +182,8 @@ async function boot() {
   const panel = document.getElementById('river-panel')!;
   const rpName = document.getElementById('rp-name')!, rpWater = document.getElementById('rp-water')!, rpRows = document.getElementById('rp-rows')!, rpNote = document.getElementById('rp-note')!;
   const fmt = new Intl.NumberFormat('en-US');
-  const km = (v: number | null) => (v === null ? '—' : fmt.format(Math.round(v)) + ' km');
-  const m3 = (v: number | null) => (v === null ? '—' : (v >= 100 ? fmt.format(Math.round(v)) : v.toFixed(v >= 10 ? 1 : 2)) + ' m³/s');
+  const km = (v: number | null) => (v === null ? 'N/A' : fmt.format(Math.round(v)) + ' km');
+  const m3 = (v: number | null) => (v === null ? 'N/A' : (v >= 100 ? fmt.format(Math.round(v)) : v.toFixed(v >= 10 ? 1 : 2)) + ' m³/s');
   const WATER: Record<string, string> = {
     white: 'Whitewater river: sediment-laden, from the Andes',
     black: 'Blackwater river: tannin-stained, sediment-poor',
@@ -198,17 +198,17 @@ async function boot() {
     const rows: [string, string][] = [
       ['Length', km(info.lengthKm)],
       ['Distance to the sea', km(info.toSeaKm)],
-      ['Source elevation', info.eleSource === null ? '—' : fmt.format(info.eleSource) + ' m'],
-      ['Mouth elevation', info.eleMouth === null ? '—' : fmt.format(info.eleMouth) + ' m'],
-      ['Gradient', info.gradient === null ? '—' : info.gradient.toFixed(2) + ' m/km'],
+      ['Source elevation', info.eleSource === null ? 'N/A' : fmt.format(info.eleSource) + ' m'],
+      ['Mouth elevation', info.eleMouth === null ? 'N/A' : fmt.format(info.eleMouth) + ' m'],
+      ['Gradient', info.gradient === null ? 'N/A' : info.gradient.toFixed(2) + ' m/km'],
       ['Stream order', String(info.order)],
       ['Discharge, mean', m3(info.disAvg)],
       ['Discharge, peak month', m3(info.disMax)],
       ['Discharge, low month', m3(info.disMin)],
-      ['Land flooded yearly', info.inundPct === null ? '—' : info.inundPct.toFixed(1) + ' %'],
-      ['Lakes in catchment', info.lakePct === null ? '—' : info.lakePct.toFixed(2) + ' % of area'],
-      ['Population in catchment', info.population === null ? '—' : fmt.format(info.population)],
-      ['Population density', info.popDensity === null ? '—' : info.popDensity.toFixed(1) + ' / km²'],
+      ['Land flooded yearly', info.inundPct === null ? 'N/A' : info.inundPct.toFixed(1) + ' %'],
+      ['Lakes in catchment', info.lakePct === null ? 'N/A' : info.lakePct.toFixed(2) + ' % of area'],
+      ['Population in catchment', info.population === null ? 'N/A' : fmt.format(info.population)],
+      ['Population density', info.popDensity === null ? 'N/A' : info.popDensity.toFixed(1) + ' / km²'],
     ];
     if (info.regulationPct !== null && info.regulationPct > 0) rows.push(['Flow regulated by dams', info.regulationPct.toFixed(1) + ' %']);
     rpRows.replaceChildren(...rows.map(([k, v]) => { const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k; const b = document.createElement('td'); b.textContent = v; tr.append(a, b); return tr; }));
