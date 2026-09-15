@@ -155,6 +155,10 @@ html, body {
     border-left: none; border-right: none; border-bottom: none;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
-  #river-panel h2 { font-size: 14px; }
-  #rp-close { font-size: 20px; padding: 0 6px; }
+  /* 50% larger type than on desktop; the sheet scrolls rather than squeezing rows */
+  #river-panel { font-size: 16.5px; padding: 14px 16px 16px; }
+  #river-panel h2 { font-size: 22px; }
+  #river-panel td { padding: 7px 0; }
+  #river-panel .note { font-size: 15px; }
+  #rp-close { font-size: 30px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
 }
