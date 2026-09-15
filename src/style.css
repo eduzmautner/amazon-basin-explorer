@@ -103,3 +103,7 @@ html, body {
 #snapshot:disabled { color: var(--fg-soft); cursor: default; }
 #controls { align-items: stretch; }
 #controls > #theme { align-self: flex-end; }
+
+/* cursor like Google Maps: arrow at rest, move while dragging (MapLibre defaults to grab/grabbing) */
+.maplibregl-canvas-container.maplibregl-interactive { cursor: default !important; }
+.maplibregl-canvas-container.maplibregl-interactive:active { cursor: move !important; }

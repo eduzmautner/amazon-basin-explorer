@@ -155,13 +155,47 @@ async function boot() {
 
   // snapshot: the map canvas alone (imagery, outline, names); the DOM overlays are not part of it
   const snapBtn = document.getElementById('snapshot') as HTMLButtonElement;
-  const takeSnapshot = () => new Promise<Blob>((resolve, reject) => {
-    map!.redraw(); // synchronous frame so the buffer holds the current view
-    map!.getCanvas().toBlob((blob) => (blob ? resolve(blob) : reject(new Error('snapshot failed'))), 'image/png');
-  });
+  const SNAPSHOT_LONG_SIDE = 2048;
+  /**
+   * Renders the current view into an off-screen map at whatever pixel ratio makes the long side
+   * SNAPSHOT_LONG_SIDE px, so the export is the same size on every screen. Same style, centre and
+   * zoom, so cells and labels look exactly as on screen, just at high resolution.
+   */
+  const takeSnapshot = async (): Promise<Blob> => {
+    const src = map!;
+    const w = src.getCanvas().clientWidth, h = src.getCanvas().clientHeight;
+    const holder = document.createElement('div');
+    holder.style.cssText = `position:fixed;left:-20000px;top:0;width:${w}px;height:${h}px;pointer-events:none;`;
+    document.body.appendChild(holder);
+    const off = new maplibregl.Map({
+      container: holder,
+      style: src.getStyle(),
+      center: src.getCenter(),
+      zoom: src.getZoom(),
+      bearing: 0,
+      pitch: 0,
+      pixelRatio: SNAPSHOT_LONG_SIDE / Math.max(w, h),
+      interactive: false,
+      attributionControl: false,
+      fadeDuration: 0,
+      canvasContextAttributes: { preserveDrawingBuffer: true },
+    });
+    try {
+      // wait until every tile and label is in (or give up after a while and take what is there)
+      await Promise.race([new Promise<void>((r) => off.once('idle', () => r())), new Promise<void>((r) => setTimeout(r, 30_000))]);
+      off.redraw();
+      return await new Promise<Blob>((resolve, reject) =>
+        off.getCanvas().toBlob((blob) => (blob ? resolve(blob) : reject(new Error('snapshot failed'))), 'image/png'));
+    } finally {
+      off.remove();
+      holder.remove();
+    }
+  };
   if (import.meta.env.DEV) (window as any).__takeSnapshot = takeSnapshot;
   snapBtn.addEventListener('click', async () => {
     snapBtn.disabled = true;
+    const label = snapBtn.textContent;
+    snapBtn.textContent = 'Rendering…';
     try {
       const blob = await takeSnapshot();
       const c = map!.getCenter();
@@ -170,7 +204,7 @@ async function boot() {
       const link = Object.assign(document.createElement('a'), { href: url, download: name });
       document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    } finally { snapBtn.disabled = false; }
+    } finally { snapBtn.disabled = false; snapBtn.textContent = label; }
   });
 
   document.getElementById('theme')!.addEventListener('click', () => {
