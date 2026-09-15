@@ -78,7 +78,11 @@ for (let z = MIN_Z; z <= MAX_Z; z++) {
   const thr = THRESHOLD[z];
   const subset = features.filter((f) => f.properties.up >= thr);
   // (a chain's up is its downstream-most reach, so big rivers are drawn whole and small ones dropped)
-  const index = geojsonvt({ type: 'FeatureCollection', features: subset }, { maxZoom: z, indexMaxZoom: z, indexMaxPoints: 0, tolerance: 2, buffer: 32, extent: 4096 });
+  // tolerance 8 = 1 screen px (4096 units per 512 px tile): a line that wiggles within its own width
+  // draws over itself and looks brighter than its opacity, worst at low zoom where source vertices
+  // are far denser than pixels
+  // maxZoom one deeper than the zoom we cut: geojson-vt skips simplification at its own maxZoom
+  const index = geojsonvt({ type: 'FeatureCollection', features: subset }, { maxZoom: z + 1, indexMaxZoom: z, indexMaxPoints: 0, tolerance: 8, buffer: 32, extent: 4096 });
   let n = 0;
   for (const id of Object.keys(index.tiles)) {
     const raw = index.tiles[id];
