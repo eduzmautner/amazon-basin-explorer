@@ -74,8 +74,8 @@ export class MiniMapControl implements maplibregl.IControl {
       ctx.fillRect(x, y, x2 - x, y2 - y);
     }
     // coastline
-    ctx.strokeStyle = this.css('--fg');
-    ctx.lineWidth = 1 * dpr;
+    ctx.strokeStyle = this.css('--border');
+    ctx.lineWidth = 1.5 * dpr; // see the coast layer in main.ts
     ctx.beginPath();
     for (const ring of this.coast) {
       ring.forEach(([lon, lat], i) => { const [x, y] = this.toPx(lon, lat); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });

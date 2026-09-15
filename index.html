@@ -3,21 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amazon River Explorer</title>
+    <title>The Amazon Basin</title>
   </head>
   <body>
     <div id="map"></div>
     <div id="ui">
-      <div id="brand">Amazon<span>River Explorer</span></div>
+      <div id="brand">The Amazon Basin<span>An Amazon river and tributaries explorer</span></div>
       <div id="controls">
         <button id="theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
         <label id="visible-control" title="Width of the strip of land shown either side of every river">
-          <span>visible land <b id="visible-value">75%</b></span>
+          <span>Visible Land <b id="visible-value">75%</b></span>
           <input id="visible" type="range" min="15" max="100" step="5" value="75" />
         </label>
+        <button id="snapshot" type="button" title="Save the current view as a PNG, without the interface">Take snapshot</button>
       </div>
     </div>
-    <div id="loading">loading river grid</div>
+    <div id="loading">Loading river grid…</div>
     <div id="hint">scroll to zoom · drag to pan · smaller rivers appear as you zoom in</div>
     <script type="module" src="/src/main.ts"></script>
   </body>

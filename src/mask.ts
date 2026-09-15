@@ -35,7 +35,7 @@ export class Mask {
     const res = await fetch(base + 'index.json');
     if (!res.ok) throw new Error('mask index missing');
     const index = (await res.json()) as MaskIndex;
-    onProgress?.('loading river grid');
+    onProgress?.('Loading river grid…');
     const r = await fetch(base + index.finest.file);
     if (!r.ok) throw new Error(`mask grid: ${r.status}`);
     let bytes = new Uint8Array(await r.arrayBuffer());
@@ -43,7 +43,7 @@ export class Mask {
       const ds = new DecompressionStream('gzip');
       bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer());
     }
-    onProgress?.('building zoom levels');
+    onProgress?.('Building zoom levels…');
     await new Promise((ok) => setTimeout(ok, 0)); // let the message paint
     const f = index.finest;
     // unpack two 4-bit cells per byte into one byte per cell

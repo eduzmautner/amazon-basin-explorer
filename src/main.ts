@@ -21,13 +21,13 @@ function currentTheme(): Theme {
 }
 const cssVar = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
 const bgColor = () => cssVar('--bg');
-const fgColor = () => cssVar('--fg');
+const borderColor = () => cssVar('--border'); // boxes and the continent outline share it
 function applyTheme(t: Theme) {
   root.dataset.theme = t;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
   // isStyleLoaded() is false whenever tiles are still loading, so check for the layer instead
   if (map?.getLayer('bg')) map.setPaintProperty('bg', 'background-color', bgColor());
-  if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', fgColor());
+  if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', borderColor());
 }
 
 async function boot() {
@@ -70,7 +70,9 @@ async function boot() {
           type: 'line',
           source: 'outline',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': fgColor(), 'line-width': 1 },
+          // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
+          // than the 1px DOM borders it is meant to match
+          paint: { 'line-color': borderColor(), 'line-width': 1.5 },
         },
         {
           id: 'river-names',
@@ -111,6 +113,7 @@ async function boot() {
     // heavier, longer glide when panning
     dragPan: { linearity: 0.25, maxSpeed: 2200, deceleration: 1500 },
     fadeDuration: 400,
+    canvasContextAttributes: { preserveDrawingBuffer: true }, // lets the snapshot button read the canvas at any time
   });
   if (import.meta.env.DEV) (window as any).__map = map; // handy for poking at the map from devtools
   map.touchZoomRotate.disableRotation();
@@ -148,6 +151,26 @@ async function boot() {
       try { localStorage.setItem(VIS_KEY, slider.value); } catch {}
       (map!.getSource('imagery') as maplibregl.RasterTileSource).setTiles([`masked://{z}/{x}/{y}?v=${v}`]);
     }, 120);
+  });
+
+  // snapshot: the map canvas alone (imagery, outline, names); the DOM overlays are not part of it
+  const snapBtn = document.getElementById('snapshot') as HTMLButtonElement;
+  const takeSnapshot = () => new Promise<Blob>((resolve, reject) => {
+    map!.redraw(); // synchronous frame so the buffer holds the current view
+    map!.getCanvas().toBlob((blob) => (blob ? resolve(blob) : reject(new Error('snapshot failed'))), 'image/png');
+  });
+  if (import.meta.env.DEV) (window as any).__takeSnapshot = takeSnapshot;
+  snapBtn.addEventListener('click', async () => {
+    snapBtn.disabled = true;
+    try {
+      const blob = await takeSnapshot();
+      const c = map!.getCenter();
+      const name = `amazon-basin_${c.lat.toFixed(3)}_${c.lng.toFixed(3)}_z${map!.getZoom().toFixed(1)}.png`;
+      const url = URL.createObjectURL(blob);
+      const link = Object.assign(document.createElement('a'), { href: url, download: name });
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } finally { snapBtn.disabled = false; }
   });
 
   document.getElementById('theme')!.addEventListener('click', () => {
