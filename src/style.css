@@ -2,7 +2,6 @@
   --bg: #fbfaf9;
   --fg: #1f2421;
   --fg-soft: #4a4f4b; /* subheading: solid, readable over imagery */
-  --shadow: rgba(255, 255, 255, 0.55);
   --border: #737378; /* mirror of the dark-mode border: same distance from white as #8c8c87 is from black */
   --muted: rgba(31, 36, 33, 0.55);
   --muted-dim: rgba(31, 36, 33, 0.33); /* --muted at 60% strength: idle controls */
@@ -13,7 +12,6 @@
   --bg: #050605;
   --fg: #e8ebe6;
   --fg-soft: #c9ccc6;
-  --shadow: rgba(0, 0, 0, 0.6);
   --border: #8c8c87; /* boxes and the continent outline (#9c9c96 at 90% brightness) */
   --muted: rgba(232, 235, 230, 0.55);
   --muted-dim: rgba(232, 235, 230, 0.33);
@@ -32,8 +30,6 @@ html, body {
 #brand {
   pointer-events: auto; font-family: Arial, "Liberation Sans", Helvetica, sans-serif;
   font-size: 15px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.3; color: var(--fg);
-  /* no frame: a soft drop shadow keeps it readable over imagery */
-  text-shadow: 0 1px 2px var(--shadow), 0 0 6px var(--shadow);
 }
 #brand span { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0.02em; color: var(--fg-soft); margin-top: 2px; }
 #theme {
