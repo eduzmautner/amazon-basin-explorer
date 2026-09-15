@@ -88,7 +88,7 @@ async function boot() {
           source: 'rivers',
           'source-layer': 'rivers',
           layout: { 'line-join': 'round', 'line-cap': 'round', visibility: 'none' },
-          paint: { 'line-color': '#ffffff', 'line-width': 2 },
+          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.6 },
         },
         {
           id: 'river-names',
