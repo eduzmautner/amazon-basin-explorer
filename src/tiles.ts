@@ -28,19 +28,20 @@ async function fetchImagery(z: number, x: number, y: number, signal: AbortSignal
 }
 
 /**
- * Registers the labels:// protocol for the river-name vector tiles. Only tiles listed in the
- * index exist on disk, so anything else is answered locally with an empty tile.
+ * Registers a <scheme>:// protocol for a pre-cut set of vector tiles (river names, river trails).
+ * Only tiles listed in the index exist on disk, so anything else is answered locally with an
+ * empty tile instead of a 404.
  */
-export async function registerLabelsProtocol(base = '/labels/'): Promise<{ minzoom: number; maxzoom: number }> {
+export async function registerStaticTilesProtocol(scheme: string, base: string): Promise<{ minzoom: number; maxzoom: number }> {
   const res = await fetch(base + 'index.json');
   if (!res.ok) return { minzoom: 0, maxzoom: 0 };
   const index = (await res.json()) as { minzoom: number; maxzoom: number; keys: string[] };
   const keys = new Set(index.keys);
-  maplibregl.addProtocol('labels', async (params, abort) => {
-    const key = params.url.replace('labels://', '');
+  maplibregl.addProtocol(scheme, async (params, abort) => {
+    const key = params.url.replace(scheme + '://', '');
     if (!keys.has(key)) return { data: new ArrayBuffer(0) };
     const r = await fetch(base + key + '.pbf', { signal: abort.signal });
-    if (!r.ok) throw new Error(`labels ${r.status}`);
+    if (!r.ok) throw new Error(`${scheme} ${r.status}`);
     return { data: await r.arrayBuffer() };
   });
   return { minzoom: index.minzoom, maxzoom: index.maxzoom };

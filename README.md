@@ -13,7 +13,8 @@ npm run dev
 ```
 
 Open http://localhost:5173. Scroll to zoom, drag to pan. Top right: dark/light toggle and the
-"visible land" slider (how wide the strip of land around each river is). Bottom right: an overview
+"visible land" slider (how wide the strip of land around each river is), the "River Trails" toggle
+(the HydroRIVERS network as white lines) and a snapshot button (2500 px PNG of the map, no UI). Bottom right: an overview
 minimap that appears from the 50-mile scale in, and the scale bar.
 
 ## How it works
@@ -46,6 +47,7 @@ Tuning knobs live in `pipeline/config.mjs`.
 4. `npm run data:names` fetches named waterways from Overpass in chunks to
    `data/work/osm-names.ndjson`. It is resumable and slow (the public servers rate-limit).
 5. `npm run data:labels` builds `public/labels/`.
+5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 6. `node pipeline/build-outline.mjs` builds the coastline from Natural Earth 1:10m countries
    (`data/raw/ne_10m_admin_0_countries.geojson`, from github.com/nvkelso/natural-earth-vector).
 

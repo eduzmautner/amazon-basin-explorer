@@ -2,7 +2,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './style.css';
 import { Mask } from './mask';
-import { registerLabelsProtocol, registerMaskedProtocol, TILE_PX } from './tiles';
+import { registerStaticTilesProtocol, registerMaskedProtocol, TILE_PX } from './tiles';
 import { installInertialZoom } from './inertia';
 import { MiniMapControl } from './minimap';
 import { BASE } from './base';
@@ -36,7 +36,8 @@ async function boot() {
   const mask = await Mask.load(BASE + 'mask/', (msg) => { loading.textContent = msg; });
   loading.hidden = true;
   registerMaskedProtocol(mask);
-  const labels = await registerLabelsProtocol(BASE + 'labels/');
+  const labels = await registerStaticTilesProtocol('labels', BASE + 'labels/');
+  const rivers = await registerStaticTilesProtocol('rivers', BASE + 'rivers/');
 
   map = new maplibregl.Map({
     container: 'map',
@@ -59,6 +60,12 @@ async function boot() {
           minzoom: labels.minzoom,
           maxzoom: labels.maxzoom,
         },
+        rivers: {
+          type: 'vector',
+          tiles: ['rivers://{z}/{x}/{y}'],
+          minzoom: rivers.minzoom,
+          maxzoom: rivers.maxzoom,
+        },
       },
       glyphs: BASE + 'fonts/{fontstack}/{range}.pbf',
       layers: [
@@ -73,6 +80,15 @@ async function boot() {
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
           paint: { 'line-color': borderColor(), 'line-width': 1.5 },
+        },
+        // "River Trails": HydroRIVERS centrelines, toggled from the panel
+        {
+          id: 'river-trails',
+          type: 'line',
+          source: 'rivers',
+          'source-layer': 'rivers',
+          layout: { 'line-join': 'round', 'line-cap': 'round', visibility: 'none' },
+          paint: { 'line-color': '#ffffff', 'line-width': 2 },
         },
         {
           id: 'river-names',
@@ -152,6 +168,14 @@ async function boot() {
       (map!.getSource('imagery') as maplibregl.RasterTileSource).setTiles([`masked://{z}/{x}/{y}?v=${v}`]);
     }, 120);
   });
+
+  // River Trails toggle
+  const trails = document.getElementById('trails') as HTMLInputElement;
+  const TRAILS_KEY = 'amazon-explorer-trails';
+  const applyTrails = () => map!.setLayoutProperty('river-trails', 'visibility', trails.checked ? 'visible' : 'none');
+  try { trails.checked = localStorage.getItem(TRAILS_KEY) === '1'; } catch {}
+  map.once('load', applyTrails);
+  trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
 
   // snapshot: the map canvas alone (imagery, outline, names); the DOM overlays are not part of it
   const snapBtn = document.getElementById('snapshot') as HTMLButtonElement;
