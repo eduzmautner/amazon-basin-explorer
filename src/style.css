@@ -127,19 +127,19 @@ html, body {
 #river-panel {
   position: absolute; left: 20px; top: 72px; width: 300px; max-height: calc(100% - 120px); overflow: auto; z-index: 5;
   background: var(--bg); border: 1px solid var(--border); color: var(--fg);
-  font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em; padding: 10px 12px 12px;
+  font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 12px; letter-spacing: 0.02em; padding: 10px 12px 12px;
 }
 #river-panel[hidden] { display: none; }
 #river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-#river-panel h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
-#rp-close { background: none; border: none; color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px; }
+#river-panel h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+#rp-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 #rp-close:hover { color: var(--fg); }
 #river-panel .water { margin: 0 0 8px; color: var(--fg-soft); }
 #river-panel table { width: 100%; border-collapse: collapse; }
 #river-panel td { padding: 4px 0; border-top: 1px solid var(--muted-dim); vertical-align: top; }
 #river-panel td:first-child { color: var(--muted); padding-right: 12px; white-space: nowrap; }
 #river-panel td:last-child { text-align: right; color: var(--fg); font-weight: 700; }
-#river-panel .note { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+#river-panel .note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .maplibregl-canvas-container.maplibregl-interactive.on-label { cursor: pointer !important; }
 
 /* phones: the info panel becomes a bottom sheet; less chrome on screen */
