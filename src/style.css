@@ -115,6 +115,7 @@ html, body {
 }
 #trails-control input { position: absolute; opacity: 0; width: 0; height: 0; }
 #trails-control .box {
+  order: 2; margin-left: auto; /* box sits at the right edge, label text on the left */
   width: 11px; height: 11px; box-sizing: border-box; border: 1px solid var(--fg); display: grid; place-items: center;
   font-size: 10px; line-height: 1; font-weight: 700; color: var(--fg);
 }

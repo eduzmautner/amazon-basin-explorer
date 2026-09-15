@@ -15,22 +15,69 @@ const THRESHOLD = { 3: 40000, 4: 40000, 5: 15000, 6: 5000, 7: 1500, 8: 500, 9: 1
 
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
-const features = [];
+// 1. load reaches
+const reaches = new Map(); // id -> { down, up, c }
 {
   const rl = readline.createInterface({ input: fs.createReadStream(IN) });
   for await (const line of rl) {
     if (!line) continue;
     const r = JSON.parse(line);
-    features.push({ type: 'Feature', properties: { up: Math.round(r.up) }, geometry: { type: 'LineString', coordinates: r.c } });
+    reaches.set(r.id, { down: r.down, up: r.up, c: r.c });
   }
 }
-log('reaches:', features.length);
+log('reaches:', reaches.size);
+
+// 2. chain reaches into continuous rivers. At each confluence the largest upstream reach continues
+//    the line; the others end there. So a river is one feature from its head to where it joins a
+//    bigger one, and line ends only overlap at real confluences instead of every 4 km.
+const mainPred = new Map(); // downstream id -> id of its largest upstream reach
+for (const [id, r] of reaches) {
+  if (!reaches.has(r.down)) continue;
+  const cur = mainPred.get(r.down);
+  if (cur === undefined || reaches.get(cur).up < r.up) mainPred.set(r.down, id);
+}
+const isMainPredOfSomething = new Set(mainPred.values());
+const hasUpstream = new Set(mainPred.keys());
+const features = [];
+for (const [id] of reaches) {
+  if (hasUpstream.has(id)) continue; // not a headwater: some chain passes through it
+  const coords = [];
+  let cur = id, maxUp = 0;
+  for (;;) {
+    const r = reaches.get(cur);
+    maxUp = Math.max(maxUp, r.up);
+    for (let i = coords.length ? 1 : 0; i < r.c.length; i++) coords.push(r.c[i]);
+    const next = r.down;
+    if (!reaches.has(next) || mainPred.get(next) !== cur) break;
+    cur = next;
+  }
+  features.push({ type: 'Feature', properties: { up: Math.round(maxUp) }, geometry: { type: 'LineString', coordinates: smooth(coords, 2) } });
+}
+void isMainPredOfSomething;
+log('rivers after chaining:', features.length);
+
+// Chaikin corner cutting: the source follows a 460 m grid in 45° steps; two passes round that into
+// curves without moving any point more than about half a cell.
+function smooth(coords, iterations) {
+  let c = coords;
+  for (let k = 0; k < iterations && c.length > 2; k++) {
+    const out = [c[0]];
+    for (let i = 0; i < c.length - 1; i++) {
+      const [x0, y0] = c[i], [x1, y1] = c[i + 1];
+      out.push([0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1], [0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1]);
+    }
+    out.push(c[c.length - 1]);
+    c = out;
+  }
+  return c;
+}
 fs.rmSync(OUT, { recursive: true, force: true });
 let written = 0, bytes = 0;
 const keys = [];
 for (let z = MIN_Z; z <= MAX_Z; z++) {
   const thr = THRESHOLD[z];
   const subset = features.filter((f) => f.properties.up >= thr);
+  // (a chain's up is its downstream-most reach, so big rivers are drawn whole and small ones dropped)
   const index = geojsonvt({ type: 'FeatureCollection', features: subset }, { maxZoom: z, indexMaxZoom: z, indexMaxPoints: 0, tolerance: 2, buffer: 32, extent: 4096 });
   let n = 0;
   for (const id of Object.keys(index.tiles)) {

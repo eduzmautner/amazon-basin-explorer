@@ -87,7 +87,9 @@ async function boot() {
           type: 'line',
           source: 'rivers',
           'source-layer': 'rivers',
-          layout: { 'line-join': 'round', 'line-cap': 'round', visibility: 'none' },
+          // butt caps: rivers are pre-chained into continuous lines, so ends only meet at confluences,
+          // and flat ends there stack less than round ones
+          layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
           paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.6 },
         },
         {
