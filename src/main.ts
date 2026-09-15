@@ -155,7 +155,7 @@ async function boot() {
 
   // snapshot: the map canvas alone (imagery, outline, names); the DOM overlays are not part of it
   const snapBtn = document.getElementById('snapshot') as HTMLButtonElement;
-  const SNAPSHOT_LONG_SIDE = 2048;
+  const SNAPSHOT_LONG_SIDE = 2500;
   /**
    * Renders the current view into an off-screen map at whatever pixel ratio makes the long side
    * SNAPSHOT_LONG_SIDE px, so the export is the same size on every screen. Same style, centre and
