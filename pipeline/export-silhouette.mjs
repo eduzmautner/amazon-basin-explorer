@@ -15,7 +15,7 @@ const packed = zlib.gunzipSync(fs.readFileSync('public/mask/' + f.file));
 const n = f.w * f.h;
 const maxDepth = Math.min(index.distLevels - 1, Math.ceil(SCALE * index.distLevels) - 1);
 let level = { M: f.maskZoom, x0: f.x0, y0: f.y0, w: f.w, h: f.h, count: new Uint8Array(n), per: 1 };
-for (let i = 0; i < n; i++) level.count[i] = ((i & 1 ? packed[i >> 1] & 15 : packed[i >> 1] >> 4) <= maxDepth) ? 1 : 0;
+for (let i = 0; i < n; i++) { const q = (i & 1 ? packed[i >> 1] & 15 : packed[i >> 1] >> 4); level.count[i] = q <= maxDepth || (SCALE >= 0.999 && index.interiorLevel !== undefined && q === index.interiorLevel) ? 1 : 0; }
 while (level.M > M_OUT) {
   const x0 = Math.floor(level.x0 / 2), y0 = Math.floor(level.y0 / 2);
   const x1 = Math.floor((level.x0 + level.w - 1) / 2), y1 = Math.floor((level.y0 + level.h - 1) / 2);

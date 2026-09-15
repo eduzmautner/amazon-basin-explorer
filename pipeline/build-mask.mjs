@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import readline from 'node:readline';
 import zlib from 'node:zlib';
-import { MASK_BANDS, MIN_MASK_LEVEL, MAX_MASK_LEVEL, MASK_SUBDIVISION, MAX_MASK_ZOOM, DIST_LEVELS, COARSE_FRACTION, DEFAULT_CORRIDOR_SCALE, corridorMiles, MILE_M } from './config.mjs';
+import { MASK_BANDS, MIN_MASK_LEVEL, MAX_MASK_LEVEL, MASK_SUBDIVISION, MAX_MASK_ZOOM, DIST_LEVELS, INTERIOR_LEVEL, OUTSIDE_LEVEL, INTERIOR_CLOSE_CELLS, COARSE_FRACTION, DEFAULT_CORRIDOR_SCALE, corridorMiles, MILE_M } from './config.mjs';
 
 const IN = 'data/work/amazon.ndjson';
 const OUT_DIR = 'public/mask';
@@ -57,7 +57,7 @@ function rasterise(M, threshold) {
   const x0 = Math.max(0, Math.floor(minX * scale) - padCells), y0 = Math.max(0, Math.floor(minY * scale) - padCells);
   const x1 = Math.min(scale - 1, Math.ceil(maxX * scale) + padCells), y1 = Math.min(scale - 1, Math.ceil(maxY * scale) + padCells);
   const w = x1 - x0 + 1, h = y1 - y0 + 1;
-  const grid = new Uint8Array(w * h).fill(DIST_LEVELS);
+  const grid = new Uint8Array(w * h).fill(OUTSIDE_LEVEL);
   let used = 0;
   for (let i = 0; i < N; i++) {
     if (UP[i] < threshold) continue;
@@ -97,6 +97,38 @@ const band = MASK_BANDS[MASK_BANDS.length - 1];
 const M = MAX_MASK_ZOOM;
 const level = rasterise(M, band.threshold);
 const { grid, x0, y0, w, h } = level;
+// ---- basin interior: everything enclosed by the corridor network ----
+{
+  const t1 = Date.now();
+  const cw = Math.ceil(w / 2), ch = Math.ceil(h / 2);
+  const coarse = new Uint8Array(cw * ch); // 1 = touches a corridor
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (grid[y * w + x] < DIST_LEVELS) coarse[(y >> 1) * cw + (x >> 1)] = 1;
+  // thicken (separable dilation) so gaps between headwater corridors on the divide stay closed
+  const k = INTERIOR_CLOSE_CELLS;
+  const dil = new Uint8Array(cw * ch);
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { let on = 0; for (let d = -k; d <= k && !on; d++) { const xx = x + d; if (xx >= 0 && xx < cw && coarse[y * cw + xx]) on = 1; } dil[y * cw + x] = on; }
+  const blocked = new Uint8Array(cw * ch);
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { let on = 0; for (let d = -k; d <= k && !on; d++) { const yy = y + d; if (yy >= 0 && yy < ch && dil[yy * cw + x]) on = 1; } blocked[y * cw + x] = on; }
+  // flood the exterior from the border
+  const ext = new Uint8Array(cw * ch);
+  const stack = [];
+  for (let x = 0; x < cw; x++) { stack.push(x, (ch - 1) * cw + x); }
+  for (let y = 0; y < ch; y++) { stack.push(y * cw, y * cw + cw - 1); }
+  while (stack.length) {
+    const i = stack.pop();
+    if (ext[i] || blocked[i]) continue;
+    ext[i] = 1;
+    const x = i % cw, y = (i - x) / cw;
+    if (x > 0) stack.push(i - 1); if (x < cw - 1) stack.push(i + 1); if (y > 0) stack.push(i - cw); if (y < ch - 1) stack.push(i + cw);
+  }
+  let interior = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (grid[i] === OUTSIDE_LEVEL && !ext[(y >> 1) * cw + (x >> 1)]) { grid[i] = INTERIOR_LEVEL; interior++; }
+  }
+  console.log(`basin interior beyond corridors: ${(100 * interior / (w * h)).toFixed(1)}% of grid cells, ${((Date.now() - t1) / 1000).toFixed(1)}s`);
+}
+
 const packed = new Uint8Array(Math.ceil((w * h) / 2)); // two 4-bit cells per byte, row-major
 let on = 0;
 for (let i = 0; i < w * h; i++) {
@@ -108,7 +140,7 @@ const gz = zlib.gzipSync(packed, { level: 9 });
 fs.writeFileSync(`${OUT_DIR}/finest.bin.gz`, gz);
 const index = {
   subdivision: MASK_SUBDIVISION, maxMaskZoom: M, minLevel: MIN_MASK_LEVEL, maxLevel: MAX_MASK_LEVEL,
-  distLevels: DIST_LEVELS, coarseFraction: COARSE_FRACTION, defaultWidth: DEFAULT_CORRIDOR_SCALE,
+  distLevels: DIST_LEVELS, interiorLevel: INTERIOR_LEVEL, coarseFraction: COARSE_FRACTION, defaultWidth: DEFAULT_CORRIDOR_SCALE,
   finest: { maskZoom: M, x0, y0, w, h, file: 'finest.bin.gz' },
 };
 fs.writeFileSync(`${OUT_DIR}/index.json`, JSON.stringify(index));

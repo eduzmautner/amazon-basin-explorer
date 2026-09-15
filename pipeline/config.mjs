@@ -17,8 +17,15 @@ export const REVEAL_THRESHOLD_BY_ZOOM = {
 };
 
 // The finest grid stores each cell's distance to the nearest river as a fraction of that river's
-// corridor radius, in this many steps (4 bits: 15 steps inside + "outside").
-export const DIST_LEVELS = 15;
+// corridor radius, in this many steps (4 bits: 14 corridor steps, then INTERIOR_LEVEL = inside the
+// basin but beyond every corridor, shown only at 100% visible land, and 15 = outside the basin).
+export const DIST_LEVELS = 14;
+export const INTERIOR_LEVEL = 14;
+export const OUTSIDE_LEVEL = 15;
+// Basin interior = cells not reachable from the grid border without crossing a corridor, tested on
+// a 2x coarser grid with the corridors thickened by this many coarse cells so that small gaps
+// between headwater corridors on the divide do not let the "outside" leak in.
+export const INTERIOR_CLOSE_CELLS = 2;
 // "Visible land" slider = corridor scale (1 = full corridor widths, 0.05 = a sliver either side of
 // each river). Default position:
 export const DEFAULT_CORRIDOR_SCALE = 0.75;

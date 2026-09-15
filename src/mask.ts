@@ -9,7 +9,7 @@
  */
 export interface MaskIndex {
   subdivision: number; maxMaskZoom: number; minLevel: number; maxLevel: number;
-  distLevels: number; coarseFraction: { t0: number; s0: number; k: number; cap: number }; defaultWidth: number;
+  distLevels: number; interiorLevel?: number; coarseFraction: { t0: number; s0: number; k: number; cap: number }; defaultWidth: number;
   finest: { maskZoom: number; x0: number; y0: number; w: number; h: number; file: string };
 }
 type Counts = Uint8Array | Uint16Array | Uint32Array;
@@ -79,8 +79,10 @@ export class Mask {
     const f = this.index.finest;
     const L = this.index.distLevels;
     const edge = this.scale * L;
-    const weight = new Uint8Array(L + 1); // by depth step; step L = outside every corridor
+    const weight = new Uint8Array(16); // by depth step; steps >= L are beyond every corridor
     for (let q = 0; q < L; q++) weight[q] = Math.round(FULL * Math.min(1, Math.max(0, edge - q)));
+    // basin interior beyond the corridors: shown only with the slider all the way up
+    if (this.index.interiorLevel !== undefined) weight[this.index.interiorLevel] = this.scale >= 0.999 ? FULL : 0;
     const count = new Uint8Array(f.w * f.h);
     const d = this.depth;
     for (let i = 0; i < count.length; i++) count[i] = weight[d[i]];
