@@ -137,7 +137,12 @@ async function boot() {
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
-  map.addControl(new maplibregl.ScaleControl({ maxWidth: 140, unit: 'imperial' }), 'bottom-right');
+  const UNITS_KEY = 'amazon-explorer-units';
+  type Units = 'imperial' | 'metric';
+  let units: Units = 'imperial';
+  try { if (localStorage.getItem(UNITS_KEY) === 'metric') units = 'metric'; } catch {}
+  const scaleBar = new maplibregl.ScaleControl({ maxWidth: 140, unit: units });
+  map.addControl(scaleBar, 'bottom-right');
   const minimap = new MiniMapControl(mask);
   map.addControl(minimap, 'bottom-right'); // added after the scale bar, so it stacks above it
   // start collapsed to the (i) button; MapLibre opens it once the style loads
@@ -240,6 +245,19 @@ async function boot() {
   try { trails.checked = localStorage.getItem(TRAILS_KEY) === '1'; } catch {}
   map.once('load', applyTrails);
   trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
+
+  // Units toggle: miles / kilometres on the scale bar (the river data is already metric)
+  const unitButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#units-control button[data-unit]'));
+  const applyUnits = () => {
+    scaleBar.setUnit(units);
+    for (const b of unitButtons) b.setAttribute('aria-checked', b.dataset.unit === units ? 'true' : 'false');
+  };
+  applyUnits();
+  for (const b of unitButtons) b.addEventListener('click', () => {
+    units = b.dataset.unit as Units;
+    applyUnits();
+    try { localStorage.setItem(UNITS_KEY, units); } catch {}
+  });
 
   // snapshot: the map canvas alone (imagery, outline, names); the DOM overlays are not part of it
   const snapBtn = document.getElementById('snapshot') as HTMLButtonElement;
