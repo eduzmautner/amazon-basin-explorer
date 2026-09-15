@@ -1,11 +1,9 @@
 import maplibregl from 'maplibre-gl';
-import { Mask } from './mask';
+import { Mask, BRIDGE_NW, BRIDGE_NE, BRIDGE_SW, BRIDGE_SE } from './mask';
 
 export const IMAGERY_URL = (z: number, x: number, y: number) =>
   `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
 export const TILE_PX = 256;
-/** Width in screen pixels of the soft transition at every mask edge. 0 = pixel-sharp squares. */
-export const FEATHER_PX = 0;
 
 function blankTile(): ImageBitmap {
   const c = new OffscreenCanvas(1, 1);
@@ -72,38 +70,36 @@ async function maskedTile(mask: Mask, url: string, abort: AbortController): Prom
     if (cov.all) return { data: bytes };
 
     const img = await createImageBitmap(new Blob([bytes]));
-    const { n, grid } = cov;
+    const { n, grid, bridges } = cov;
     const side = n + 2;
     const cellPx = TILE_PX / n;
 
-    // 1) tiny alpha image of the padded cell grid
-    const tiny = new OffscreenCanvas(side, side);
-    const tctx = tiny.getContext('2d')!;
-    const id = tctx.createImageData(side, side);
-    for (let i = 0; i < side * side; i++) id.data[i * 4 + 3] = grid[i] ? 255 : 0;
-    tctx.putImageData(id, 0, 0);
-
-    // 2) scale the cell grid up to tile size. With no feather this is a plain nearest-neighbour
-    //    blit, so every cell edge lands exactly on a pixel boundary. With a feather, the grid is first
-    //    blown up so each cell is (cellPx / feather) texels wide and then smoothed, which gives a
-    //    bilinear ramp ~FEATHER_PX wide on screen whatever the cell size.
-    let maskImg: OffscreenCanvas = tiny;
-    const feather = Math.min(FEATHER_PX, cellPx);
-    if (feather > 0) {
-      const midSide = Math.round(side * (cellPx / feather));
-      maskImg = new OffscreenCanvas(midSide, midSide);
-      const mctx = maskImg.getContext('2d')!;
-      mctx.imageSmoothingEnabled = false;
-      mctx.drawImage(tiny, 0, 0, midSide, midSide);
+    // alpha mask at tile resolution: whole cells as squares, bridge cells as 45° triangles facing
+    // the two visible neighbours. Cell edges land on whole pixels, so squares stay pixel-sharp.
+    const maskC = new OffscreenCanvas(TILE_PX, TILE_PX);
+    const mctx = maskC.getContext('2d')!;
+    mctx.fillStyle = '#000';
+    for (let j = 1; j <= n; j++) for (let i = 1; i <= n; i++) {
+      const k = j * side + i;
+      const x0 = (i - 1) * cellPx, y0 = (j - 1) * cellPx, x1 = x0 + cellPx, y1 = y0 + cellPx;
+      if (grid[k]) { mctx.fillRect(x0, y0, cellPx, cellPx); continue; }
+      const f = bridges[k];
+      if (!f) continue;
+      // one fill per triangle: in a single path, overlapping triangles with opposite winding cancel
+      const tri = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => {
+        mctx.beginPath(); mctx.moveTo(ax, ay); mctx.lineTo(bx, by); mctx.lineTo(cx, cy); mctx.closePath(); mctx.fill();
+      };
+      if (f & BRIDGE_NW) tri(x0, y0, x1, y0, x0, y1);
+      if (f & BRIDGE_NE) tri(x1, y0, x0, y0, x1, y1);
+      if (f & BRIDGE_SW) tri(x0, y1, x0, y0, x1, y1);
+      if (f & BRIDGE_SE) tri(x1, y1, x1, y0, x0, y1);
     }
 
     const out = new OffscreenCanvas(TILE_PX, TILE_PX);
     const octx = out.getContext('2d')!;
     octx.drawImage(img, 0, 0, TILE_PX, TILE_PX);
     octx.globalCompositeOperation = 'destination-in';
-    octx.imageSmoothingEnabled = feather > 0;
-    octx.imageSmoothingQuality = 'high';
-    octx.drawImage(maskImg, -cellPx, -cellPx, side * cellPx, side * cellPx);
+    octx.drawImage(maskC, 0, 0);
     img.close();
     return { data: out.transferToImageBitmap() };
   }

@@ -12,10 +12,12 @@ import vtpbf from 'vt-pbf';
 import { REVEAL_THRESHOLD_BY_ZOOM, MAX_MASK_LEVEL } from './config.mjs';
 
 const OSM = 'data/work/osm-names.ndjson';
+const OSM_RELATIONS = 'data/work/osm-relations.ndjson'; // member ways of named river relations (optional)
 const RIVERS = 'data/work/amazon.ndjson';
 const OUT = 'public/labels';
 const MIN_Z = 3, MAX_Z = 11;
 const MATCH_KM = 1.5;      // max distance from an OSM vertex to a HydroRIVERS reach
+const MATCH_KM_WIDE = 6;   // fallback for the widest rivers, whose OSM centreline can sit far from HydroRIVERS'
 const GRID_DEG = 0.05;     // spatial hash cell for reach lookup
 // Label paths are generalised hard (extent units, 8 units = 1px at 512px tiles): MapLibre refuses to
 // place text along lines that wiggle more than text-max-angle within a label length.
@@ -27,14 +29,21 @@ const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`,
 // ---------- 1. OSM ways ----------
 const ways = [];
 {
-  const rl = readline.createInterface({ input: fs.createReadStream(OSM) });
   const seen = new Set();
-  for await (const line of rl) {
-    if (!line) continue;
-    const f = JSON.parse(line);
-    if (seen.has(f.properties.id)) continue; // chunk overlaps
-    seen.add(f.properties.id);
-    ways.push({ name: f.properties.name.trim(), kind: f.properties.kind, c: f.geometry.coordinates });
+  // named ways first so a way's own name wins over a relation's; relation members fill the gaps
+  for (const file of [OSM, OSM_RELATIONS]) {
+    if (!fs.existsSync(file)) continue;
+    let n = 0;
+    const rl = readline.createInterface({ input: fs.createReadStream(file) });
+    for await (const line of rl) {
+      if (!line) continue;
+      const f = JSON.parse(line);
+      if (seen.has(f.properties.id)) continue; // chunk overlaps / already named
+      seen.add(f.properties.id);
+      ways.push({ name: f.properties.name.trim(), kind: f.properties.kind, c: f.geometry.coordinates });
+      n++;
+    }
+    log(`${file}: ${n} ways`);
   }
 }
 log('OSM named ways:', ways.length);
@@ -88,9 +97,9 @@ const grid = new Map(); // "gx,gy" -> array of [x1,y1,x2,y2,up]
   log('reach segments indexed:', segs, 'cells:', grid.size);
 }
 const KM_PER_DEG = 111.32;
-function nearestUp(lon, lat) {
+function nearestUp(lon, lat, maxKm = MATCH_KM) {
   const cosl = Math.cos((lat * Math.PI) / 180);
-  const rDeg = MATCH_KM / KM_PER_DEG;
+  const rDeg = maxKm / KM_PER_DEG;
   const gx0 = Math.floor((lon - rDeg) / GRID_DEG), gx1 = Math.floor((lon + rDeg) / GRID_DEG);
   const gy0 = Math.floor((lat - rDeg) / GRID_DEG), gy1 = Math.floor((lat + rDeg) / GRID_DEG);
   let best = Infinity, bestUp = -1;
@@ -105,7 +114,7 @@ function nearestUp(lon, lat) {
       if (d2 < best) { best = d2; bestUp = up; }
     }
   }
-  return Math.sqrt(best) * KM_PER_DEG <= MATCH_KM ? bestUp : -1;
+  return Math.sqrt(best) * KM_PER_DEG <= maxKm ? bestUp : -1;
 }
 const features = [];
 let unmatched = 0;
@@ -113,12 +122,18 @@ for (const l of lines) {
   const n = l.c.length, samples = Math.min(n, 16);
   // median of the nearest reach sizes along the line: a tributary that hugs a big river near its
   // mouth would otherwise inherit the big river's size from one or two samples
-  const ups = [];
-  for (let s = 0; s < samples; s++) {
-    const [lon, lat] = l.c[Math.floor((s * (n - 1)) / Math.max(1, samples - 1))];
-    const u = nearestUp(lon, lat);
-    if (u >= 0) ups.push(u);
-  }
+  const sample = (maxKm) => {
+    const ups = [];
+    for (let s = 0; s < samples; s++) {
+      const [lon, lat] = l.c[Math.floor((s * (n - 1)) / Math.max(1, samples - 1))];
+      const u = nearestUp(lon, lat, maxKm);
+      if (u >= 0) ups.push(u);
+    }
+    return ups;
+  };
+  let ups = sample(MATCH_KM);
+  // wide rivers: the OSM line may run along one channel of a braided, multi-km-wide river
+  if (ups.length < Math.max(1, samples / 2)) ups = sample(MATCH_KM_WIDE);
   if (ups.length < Math.max(1, samples / 2)) { unmatched++; continue; }
   ups.sort((a, b) => a - b);
   const up = ups[Math.floor(ups.length / 2)];

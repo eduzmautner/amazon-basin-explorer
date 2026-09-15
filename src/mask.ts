@@ -14,7 +14,13 @@ export interface MaskIndex {
 type Counts = Uint8Array | Uint16Array | Uint32Array;
 interface Level { M: number; x0: number; y0: number; w: number; h: number; count: Counts; finePerCell: number }
 
-export interface Coverage { n: number; grid: Uint8Array; any: boolean; all: boolean }
+/**
+ * n: cells per tile side. grid: (n+2)^2 visibility with one cell of padding. bridges: same layout,
+ * bit flags per empty cell for 45° corner fills (1 = NW, 2 = NE, 4 = SW, 8 = SE), set when the two
+ * neighbours on those sides are visible, so staircase edges chamfer along the river.
+ */
+export interface Coverage { n: number; grid: Uint8Array; bridges: Uint8Array; any: boolean; all: boolean }
+export const BRIDGE_NW = 1, BRIDGE_NE = 2, BRIDGE_SW = 4, BRIDGE_SE = 8;
 
 export class Mask {
   private levels = new Map<number, Level>();
@@ -144,6 +150,19 @@ export class Mask {
         }
       }
     }
-    return { n, grid, any: on > 0, all: on === n * n };
+    // corner bridges: an empty cell between two visible orthogonal neighbours gets the triangle
+    // that faces them, turning the stair step into a 45° edge
+    const bridges = new Uint8Array(side * side);
+    let bridged = 0;
+    if (on < n * n) { // even a tile with no cells of its own may bridge a corner from its neighbours
+      for (let j = 1; j <= n; j++) for (let i = 1; i <= n; i++) {
+        const k = j * side + i;
+        if (grid[k]) continue;
+        const N = grid[k - side], S = grid[k + side], W = grid[k - 1], E = grid[k + 1];
+        const f = (N && W ? BRIDGE_NW : 0) | (N && E ? BRIDGE_NE : 0) | (S && W ? BRIDGE_SW : 0) | (S && E ? BRIDGE_SE : 0);
+        if (f) { bridges[k] = f; bridged++; }
+      }
+    }
+    return { n, grid, bridges, any: on > 0 || bridged > 0, all: on === n * n };
   }
 }
