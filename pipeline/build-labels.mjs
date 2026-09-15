@@ -18,6 +18,13 @@ const OUT = 'public/labels';
 const MIN_Z = 3, MAX_Z = 11;
 const MATCH_KM = 1.5;      // max distance from an OSM vertex to a HydroRIVERS reach
 const MATCH_KM_WIDE = 6;   // fallback for the widest rivers, whose OSM centreline can sit far from HydroRIVERS'
+// Names that denote creeks, side channels or lakes cannot be big rivers; matches onto reaches above
+// this upstream area are strays (a floodplain creek snapping to the main stem beside it).
+const MINOR_NAME = /^(igarap[eé]|furo|paran[aáã]|canal|bra[cç]o|quebrada|ca[nñ]o|lago|lagoa|entrada|sacado|riacho|c[oó]rrego|arroyo|demarca)/i;
+const MINOR_MAX_UP = 20000;
+// A line this long is a big river; along big rivers the nearest reach is often a floodplain side
+// channel, so for long lines take the largest reach within range instead of the nearest.
+const LONG_LINE_KM = 200;
 const GRID_DEG = 0.05;     // spatial hash cell for reach lookup
 // Label paths are generalised hard (extent units, 8 units = 1px at 512px tiles): MapLibre refuses to
 // place text along lines that wiggle more than text-max-angle within a label length.
@@ -76,20 +83,22 @@ for (const [name, group] of byName) {
 log('chained lines:', lines.length, 'distinct names:', byName.size);
 
 // ---------- 3. match to HydroRIVERS ----------
-const grid = new Map(); // "gx,gy" -> array of [x1,y1,x2,y2,up]
+const grid = new Map(); // "gx,gy" -> array of [x1,y1,x2,y2,up,id]
+const reachInfo = new Map(); // id -> { down, up }
 {
   const rl = readline.createInterface({ input: fs.createReadStream(RIVERS) });
   let segs = 0;
   for await (const line of rl) {
     if (!line) continue;
     const r = JSON.parse(line);
+    reachInfo.set(r.id, { down: r.down, up: r.up });
     for (let k = 0; k < r.c.length - 1; k++) {
       const [x1, y1] = r.c[k], [x2, y2] = r.c[k + 1];
       const gx0 = Math.floor(Math.min(x1, x2) / GRID_DEG), gx1 = Math.floor(Math.max(x1, x2) / GRID_DEG);
       const gy0 = Math.floor(Math.min(y1, y2) / GRID_DEG), gy1 = Math.floor(Math.max(y1, y2) / GRID_DEG);
       for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) {
         const k2 = gx + ',' + gy;
-        (grid.get(k2) ?? grid.set(k2, []).get(k2)).push([x1, y1, x2, y2, r.up]);
+        (grid.get(k2) ?? grid.set(k2, []).get(k2)).push([x1, y1, x2, y2, r.up, r.id]);
       }
       segs++;
     }
@@ -97,24 +106,45 @@ const grid = new Map(); // "gx,gy" -> array of [x1,y1,x2,y2,up]
   log('reach segments indexed:', segs, 'cells:', grid.size);
 }
 const KM_PER_DEG = 111.32;
+function largestUpWithin(lon, lat, maxKm) {
+  const cosl = Math.cos((lat * Math.PI) / 180);
+  const rDeg = maxKm / KM_PER_DEG;
+  const gx0 = Math.floor((lon - rDeg) / GRID_DEG), gx1 = Math.floor((lon + rDeg) / GRID_DEG);
+  const gy0 = Math.floor((lat - rDeg) / GRID_DEG), gy1 = Math.floor((lat + rDeg) / GRID_DEG);
+  const max2 = (maxKm / KM_PER_DEG) ** 2;
+  let bestUp = -1, bestId = 0;
+  for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) {
+    const cell = grid.get(gx + ',' + gy);
+    if (!cell) continue;
+    for (const [x1, y1, x2, y2, up, id] of cell) {
+      if (up <= bestUp) continue;
+      const ax = (x1 - lon) * cosl, ay = y1 - lat, bx = (x2 - lon) * cosl, by = y2 - lat;
+      const dx = bx - ax, dy = by - ay, ll = dx * dx + dy * dy;
+      let t = ll > 0 ? -(ax * dx + ay * dy) / ll : 0; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const ex = ax + t * dx, ey = ay + t * dy;
+      if (ex * ex + ey * ey <= max2) { bestUp = up; bestId = id; }
+    }
+  }
+  return bestUp >= 0 ? [bestUp, bestId] : null;
+}
 function nearestUp(lon, lat, maxKm = MATCH_KM) {
   const cosl = Math.cos((lat * Math.PI) / 180);
   const rDeg = maxKm / KM_PER_DEG;
   const gx0 = Math.floor((lon - rDeg) / GRID_DEG), gx1 = Math.floor((lon + rDeg) / GRID_DEG);
   const gy0 = Math.floor((lat - rDeg) / GRID_DEG), gy1 = Math.floor((lat + rDeg) / GRID_DEG);
-  let best = Infinity, bestUp = -1;
+  let best = Infinity, bestUp = -1, bestId = 0;
   for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) {
     const cell = grid.get(gx + ',' + gy);
     if (!cell) continue;
-    for (const [x1, y1, x2, y2, up] of cell) {
+    for (const [x1, y1, x2, y2, up, id] of cell) {
       const ax = (x1 - lon) * cosl, ay = y1 - lat, bx = (x2 - lon) * cosl, by = y2 - lat;
       const dx = bx - ax, dy = by - ay, ll = dx * dx + dy * dy;
       let t = ll > 0 ? -(ax * dx + ay * dy) / ll : 0; t = t < 0 ? 0 : t > 1 ? 1 : t;
       const ex = ax + t * dx, ey = ay + t * dy, d2 = ex * ex + ey * ey;
-      if (d2 < best) { best = d2; bestUp = up; }
+      if (d2 < best) { best = d2; bestUp = up; bestId = id; }
     }
   }
-  return Math.sqrt(best) * KM_PER_DEG <= maxKm ? bestUp : -1;
+  return Math.sqrt(best) * KM_PER_DEG <= maxKm ? [bestUp, bestId] : null;
 }
 const features = [];
 let unmatched = 0;
@@ -122,27 +152,92 @@ for (const l of lines) {
   const n = l.c.length, samples = Math.min(n, 16);
   // median of the nearest reach sizes along the line: a tributary that hugs a big river near its
   // mouth would otherwise inherit the big river's size from one or two samples
+  let lineKm = 0;
+  for (let i = 1; i < n; i++) { const [x0, y0] = l.c[i - 1], [x1, y1] = l.c[i]; lineKm += Math.hypot((x1 - x0) * Math.cos((y0 * Math.PI) / 180), y1 - y0) * KM_PER_DEG; }
+  const matcher = lineKm >= LONG_LINE_KM ? (lon, lat) => largestUpWithin(lon, lat, MATCH_KM_WIDE) : nearestUp;
   const sample = (maxKm) => {
-    const ups = [];
+    const hits = [];
     for (let s = 0; s < samples; s++) {
       const [lon, lat] = l.c[Math.floor((s * (n - 1)) / Math.max(1, samples - 1))];
-      const u = nearestUp(lon, lat, maxKm);
-      if (u >= 0) ups.push(u);
+      const h = matcher(lon, lat, maxKm);
+      if (h) hits.push(h);
     }
-    return ups;
+    return hits;
   };
-  let ups = sample(MATCH_KM);
+  const minor = MINOR_NAME.test(l.name);
+  const plausible = (hs) => (minor ? hs.filter((h) => h[0] <= MINOR_MAX_UP) : hs);
+  let hits = plausible(sample(MATCH_KM));
   // wide rivers: the OSM line may run along one channel of a braided, multi-km-wide river
-  if (ups.length < Math.max(1, samples / 2)) ups = sample(MATCH_KM_WIDE);
-  if (ups.length < Math.max(1, samples / 2)) { unmatched++; continue; }
-  ups.sort((a, b) => a - b);
+  if (hits.length < Math.max(1, samples / 2)) hits = plausible(sample(MATCH_KM_WIDE));
+  if (hits.length < Math.max(1, samples / 2)) { unmatched++; continue; }
+  const ups = hits.map((h) => h[0]).sort((a, b) => a - b);
   const up = ups[Math.floor(ups.length / 2)];
+  const reachIds = [...new Set(hits.map((h) => h[1]))];
   // map zoom at which this river's corridor becomes visible (imagery tile zoom = map zoom + 1)
   let minz = MAX_MASK_LEVEL - 1;
   for (const [z, thr] of Object.entries(REVEAL_THRESHOLD_BY_ZOOM)) if (up >= thr) { minz = Math.max(MIN_Z, Number(z) - 1); break; }
-  features.push({ type: 'Feature', properties: { name: l.name, up: Math.round(up), minz }, geometry: { type: 'LineString', coordinates: l.c } });
+  features.push({ type: 'Feature', properties: { name: l.name, up: Math.round(up), minz, reachIds, lineKm }, geometry: { type: 'LineString', coordinates: l.c } });
 }
 log('matched lines:', features.length, 'unmatched (outside basin or no reach nearby):', unmatched);
+
+// ---------- 3b. river identity ----------
+// Chains as in build-rivers.mjs: at each confluence the largest upstream reach continues. Lines that
+// share a name and sit on the same chain are one river; the id is "<chain mouth reach>|<name>", so
+// two different "Rio Preto"s stay apart while the many OSM pieces of one river collapse together.
+const mainPred = new Map();
+for (const [id, r] of reachInfo) {
+  if (!reachInfo.has(r.down)) continue;
+  const cur = mainPred.get(r.down);
+  if (cur === undefined || reachInfo.get(cur).up < r.up) mainPred.set(r.down, id);
+}
+const chainMouthCache = new Map();
+const chainMouth = (id) => {
+  if (chainMouthCache.has(id)) return chainMouthCache.get(id);
+  const path = [id]; let cur = id;
+  for (;;) { const next = reachInfo.get(cur).down; if (!reachInfo.has(next) || mainPred.get(next) !== cur) break; cur = next; path.push(cur); }
+  for (const p of path) chainMouthCache.set(p, cur);
+  return cur;
+};
+const rivers = new Map(); // rid -> { name, reaches: Set, lineUps: [] } (lineUps: one median size per OSM line)
+for (const f of features) {
+  const p = f.properties;
+  const best = p.reachIds.reduce((a, b) => (reachInfo.get(b).up > reachInfo.get(a).up ? b : a));
+  const rid = chainMouth(best) + '|' + p.name;
+  p.rid = rid;
+  const r = rivers.get(rid) ?? rivers.set(rid, { name: p.name, reaches: new Set(), lineUps: [] }).get(rid);
+  for (const id of p.reachIds) r.reaches.add(id);
+  r.lineUps.push([p.up, p.lineKm]); // [size, length km]: length-weighted, so a river's long main line outweighs bank-side pieces
+  delete p.reachIds; delete p.lineKm;
+}
+// Side channels (paranás) of a big river carry the river's name in OSM but sit on their own short
+// chains. Fold a name's minor groups into its dominant group when their chain flows straight into it.
+const ridsByName = new Map();
+for (const [rid, r] of rivers) (ridsByName.get(r.name) ?? ridsByName.set(r.name, []).get(r.name)).push(rid);
+const alias = new Map();
+for (const [, rids] of ridsByName) {
+  if (rids.length < 2) continue;
+  const dominant = rids.reduce((a, b) => (rivers.get(b).reaches.size > rivers.get(a).reaches.size ? b : a));
+  const domMouth = Number(dominant.split('|')[0]);
+  const domChain = new Set(); // every reach on the dominant chain, from its mouth back up the main path
+  for (let cur = domMouth; cur !== undefined; cur = mainPred.get(cur)) domChain.add(cur);
+  for (const rid of rids) {
+    if (rid === dominant) continue;
+    const mouth = Number(rid.split('|')[0]);
+    // walk downstream a little: a paraná may join another paraná before rejoining the main river
+    let into = reachInfo.get(mouth)?.down, joins = false;
+    for (let hops = 0; hops < 40 && into !== undefined && reachInfo.has(into); hops++) { if (domChain.has(into)) { joins = true; break; } into = reachInfo.get(into).down; }
+    if (joins && rivers.get(rid).reaches.size <= rivers.get(dominant).reaches.size) {
+      alias.set(rid, dominant);
+      for (const id of rivers.get(rid).reaches) rivers.get(dominant).reaches.add(id);
+      rivers.get(dominant).lineUps.push(...rivers.get(rid).lineUps);
+      rivers.delete(rid);
+    }
+  }
+}
+for (const f of features) if (alias.has(f.properties.rid)) f.properties.rid = alias.get(f.properties.rid);
+log('side channels folded into their river:', alias.size);
+fs.writeFileSync('data/work/label-rivers.json', JSON.stringify([...rivers].map(([rid, r]) => ({ rid, name: r.name, reaches: [...r.reaches], lineUps: r.lineUps }))));
+log('distinct rivers (name on a chain):', rivers.size, '-> data/work/label-rivers.json');
 
 // ---------- 4. tiles ----------
 // Douglas-Peucker in degrees (longitude scaled by cos(lat) so the tolerance is roughly isotropic)

@@ -171,6 +171,65 @@ async function boot() {
     }, 120);
   });
 
+  // River info panel: click a name label, look the river up in riverinfo.json (loaded once)
+  type RiverInfo = {
+    name: string; lengthKm: number | null; toSeaKm: number | null; eleSource: number | null; eleMouth: number | null;
+    gradient: number | null; order: number; disAvg: number | null; disMax: number | null; disMin: number | null;
+    inundPct: number | null; lakePct: number | null; lakeVolMcm: number | null; regulationPct: number | null;
+    population: number | null; popDensity: number | null; water: 'white' | 'black' | 'clear' | null; note?: string;
+  };
+  let riverInfo: Promise<Record<string, RiverInfo>> | undefined;
+  const panel = document.getElementById('river-panel')!;
+  const rpName = document.getElementById('rp-name')!, rpWater = document.getElementById('rp-water')!, rpRows = document.getElementById('rp-rows')!, rpNote = document.getElementById('rp-note')!;
+  const fmt = new Intl.NumberFormat('en-US');
+  const km = (v: number | null) => (v === null ? '—' : fmt.format(Math.round(v)) + ' km');
+  const m3 = (v: number | null) => (v === null ? '—' : (v >= 100 ? fmt.format(Math.round(v)) : v.toFixed(v >= 10 ? 1 : 2)) + ' m³/s');
+  const WATER: Record<string, string> = {
+    white: 'Whitewater river: sediment-laden, from the Andes',
+    black: 'Blackwater river: tannin-stained, sediment-poor',
+    clear: 'Clearwater river: draining the ancient shields',
+  };
+  const showRiver = (info: RiverInfo) => {
+    rpName.textContent = info.name;
+    rpWater.textContent = info.water ? WATER[info.water] : '';
+    rpWater.hidden = !info.water;
+    rpNote.textContent = info.note ?? '';
+    rpNote.hidden = !info.note;
+    const rows: [string, string][] = [
+      ['Length', km(info.lengthKm)],
+      ['Distance to the sea', km(info.toSeaKm)],
+      ['Source elevation', info.eleSource === null ? '—' : fmt.format(info.eleSource) + ' m'],
+      ['Mouth elevation', info.eleMouth === null ? '—' : fmt.format(info.eleMouth) + ' m'],
+      ['Gradient', info.gradient === null ? '—' : info.gradient.toFixed(2) + ' m/km'],
+      ['Stream order', String(info.order)],
+      ['Discharge, mean', m3(info.disAvg)],
+      ['Discharge, peak month', m3(info.disMax)],
+      ['Discharge, low month', m3(info.disMin)],
+      ['Land flooded yearly', info.inundPct === null ? '—' : info.inundPct.toFixed(1) + ' %'],
+      ['Lakes in catchment', info.lakePct === null ? '—' : info.lakePct.toFixed(2) + ' % of area'],
+      ['Population in catchment', info.population === null ? '—' : fmt.format(info.population)],
+      ['Population density', info.popDensity === null ? '—' : info.popDensity.toFixed(1) + ' / km²'],
+    ];
+    if (info.regulationPct !== null && info.regulationPct > 0) rows.push(['Flow regulated by dams', info.regulationPct.toFixed(1) + ' %']);
+    rpRows.replaceChildren(...rows.map(([k, v]) => { const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k; const b = document.createElement('td'); b.textContent = v; tr.append(a, b); return tr; }));
+    panel.hidden = false;
+  };
+  const openRiver = async (rid: string) => {
+    riverInfo ??= fetch(BASE + 'riverinfo.json').then((r) => r.json());
+    const info = (await riverInfo)[rid];
+    if (info) showRiver(info);
+  };
+  if (import.meta.env.DEV) (window as any).__openRiver = openRiver;
+  map.on('click', 'river-names', async (e) => {
+    const f = e.features?.[0];
+    const rid = f?.properties?.rid as string | undefined;
+    if (rid) await openRiver(rid);
+  });
+  const cc = map.getCanvasContainer();
+  map.on('mouseenter', 'river-names', () => cc.classList.add('on-label'));
+  map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
+  document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
+
   // River Trails toggle
   const trails = document.getElementById('trails') as HTMLInputElement;
   const TRAILS_KEY = 'amazon-explorer-trails';

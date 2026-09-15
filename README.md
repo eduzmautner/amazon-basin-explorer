@@ -14,7 +14,8 @@ npm run dev
 
 Open http://localhost:5173. Scroll to zoom, drag to pan. Top right: dark/light toggle and the
 "visible land" slider (how wide the strip of land around each river is), the "River Trails" toggle
-(the HydroRIVERS network as white lines) and a snapshot button (2500 px PNG of the map, no UI). Bottom right: an overview
+(the HydroRIVERS network as white lines) and a snapshot button (2500 px PNG of the map, no UI). Click a
+river name to open an info panel with its length, discharge and more. Bottom right: an overview
 minimap that appears from the 50-mile scale in, and the scale bar.
 
 ## How it works
@@ -48,6 +49,11 @@ Tuning knobs live in `pipeline/config.mjs`.
    `data/work/osm-names.ndjson`. It is resumable and slow (the public servers rate-limit).
 5. `npm run data:labels` builds `public/labels/`.
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
+5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract
+   `RiverATLAS_v10_sa_north.dbf` and `RiverATLAS_v10_sa_south.dbf` into `data/raw/riveratlas/`, then
+   `node pipeline/build-riverinfo.mjs` writes `public/riverinfo.json` (one record per named river: length to
+   its confluence, distance to the sea, elevations, modelled discharge, flooding, population; water type from
+   `pipeline/water-types.mjs`). The first run scans the 2 GB tables once and caches the basin's records.
 6. `node pipeline/build-outline.mjs` builds the coastline from Natural Earth 1:10m countries
    (`data/raw/ne_10m_admin_0_countries.geojson`, from github.com/nvkelso/natural-earth-vector).
 
@@ -73,5 +79,6 @@ Pushes to `main` build the site and publish it to GitHub Pages via `.github/work
 ## Credits
 
 Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community. River network:
-HydroRIVERS v1.0 (Lehner & Grill 2013, CC BY 4.0). Names © OpenStreetMap contributors (ODbL).
+HydroRIVERS v1.0 (Lehner & Grill 2013, CC BY 4.0). River attributes: HydroATLAS / RiverATLAS v1.0 (Linke
+et al. 2019, CC BY 4.0). Names © OpenStreetMap contributors (ODbL).
 Coastline: Natural Earth (public domain). Open Sans glyphs via fonts.openmaptiles.org.

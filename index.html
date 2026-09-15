@@ -26,6 +26,18 @@
         <button id="snapshot" type="button" title="Save the current view as a PNG, without the interface">Take snapshot</button>
       </div>
     </div>
+    <aside id="river-panel" hidden aria-live="polite">
+      <div class="head">
+        <h2 id="rp-name">River</h2>
+        <button id="rp-close" type="button" aria-label="Close">×</button>
+      </div>
+      <p id="rp-water" class="water" hidden></p>
+      <p id="rp-note" class="water" hidden></p>
+      <table>
+        <tbody id="rp-rows"></tbody>
+      </table>
+      <p class="note">Discharge, population and flooding are modelled long-term averages (HydroATLAS, 1971–2000); length and elevation from the HydroRIVERS network.</p>
+    </aside>
     <div id="loading">Loading river grid…</div>
     <div id="hint">scroll to zoom · drag to pan · smaller rivers appear as you zoom in</div>
     <script type="module" src="/src/main.ts"></script>
