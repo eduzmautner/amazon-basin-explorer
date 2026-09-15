@@ -33,7 +33,7 @@ while (level.M > M_OUT) {
   level = { M: level.M - 1, x0, y0, w, h, count, per };
 }
 const cf = index.coarseFraction;
-const minFraction = Math.min(cf.cap, cf.base + cf.perScale * SCALE);
+const minFraction = cf.cap - (cf.cap - cf.t0) * Math.exp(-cf.k * (SCALE - cf.s0));
 const need = level.per === 1 ? 1 : Math.max(1, Math.ceil(level.per * minFraction));
 const { w, h } = level;
 const on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && level.count[y * w + x] >= need;

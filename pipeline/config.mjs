@@ -23,10 +23,11 @@ export const DIST_LEVELS = 15;
 // each river). Default position:
 export const DEFAULT_CORRIDOR_SCALE = 0.75;
 // A coarse (zoomed-out) cell is shown when the fraction of its ground area inside a (scaled)
-// corridor is at least min(cap, base + perScale * slider). Measured on the basin core: at 100%
-// this lights ~85% of cells (near solid, a few holes), at 50% about half, at 15% about a quarter,
-// so the ribbons of the big rivers stay visible even with the thinnest corridors.
-export const COARSE_FRACTION = { base: 0.17, perScale: 0.66, cap: 0.5 };
+// corridor is at least T(s) = cap - (cap - t0) * exp(-k * (s - s0)), s = slider (0.15..1).
+// The curve was fitted so the share of the basin shown grows steadily at every 5% step: ~10% at
+// 15%, ~37% at 50%, ~55% at 100% (measured on the on-load zoom). A steeper curve makes some steps
+// lose cells; a flatter one shows nearly everything by 40%.
+export const COARSE_FRACTION = { t0: 0.2, s0: 0.15, k: 2.8, cap: 0.62 };
 
 // Mask grid is this many zoom levels finer than the imagery tile (5 => 32x32 cells per 256px tile,
 // i.e. 8px squares on screen). Capped at MAX_MASK_ZOOM so the finest file stays a sane size.

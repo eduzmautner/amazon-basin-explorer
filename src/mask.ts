@@ -2,17 +2,20 @@
  * Reveal grid. The finest level stores, per ~300 m cell, how deep inside a river corridor it sits:
  * 0 = on the river, distLevels-1 = at the corridor's edge, distLevels = outside every corridor.
  * The "visible land" slider is a corridor scale: a cell is inside when depth < scale * distLevels.
- * Coarser zooms count how many fine cells each coarse cell contains and show it when the share
- * reaches min(cap, base + perScale * scale), so thin corridors still light up the cells they cross.
+ * Coarser zooms count how much of each coarse cell is covered and show it when the share reaches
+ * T(scale) = cap - (cap - t0) * exp(-k * (scale - s0)): lenient for thin corridors so the big
+ * rivers' ribbons show, tightening smoothly as corridors widen so growth stays gradual.
  * The counts are rebuilt whenever the scale changes.
  */
 export interface MaskIndex {
   subdivision: number; maxMaskZoom: number; minLevel: number; maxLevel: number;
-  distLevels: number; coarseFraction: { base: number; perScale: number; cap: number }; defaultWidth: number;
+  distLevels: number; coarseFraction: { t0: number; s0: number; k: number; cap: number }; defaultWidth: number;
   finest: { maskZoom: number; x0: number; y0: number; w: number; h: number; file: string };
 }
 type Counts = Uint8Array | Uint16Array | Uint32Array;
+/** count: coverage per cell in fixed point, FULL per fully covered fine cell (partial at the corridor edge). */
 interface Level { M: number; x0: number; y0: number; w: number; h: number; count: Counts; finePerCell: number }
+const FULL = 255;
 
 /**
  * n: cells per tile side. grid: (n+2)^2 visibility with one cell of padding. bridges: same layout,
@@ -66,14 +69,21 @@ export class Mask {
   }
   getVisible() { return this.scale; }
 
-  /** Threshold the depth field at the current scale, then halve up into the coarse count levels. */
+  /**
+   * Weight the depth field at the current scale, then halve up into the coarse count levels.
+   * A cell at depth step q spans normalised distances [q, q+1) / levels; at corridor scale s the
+   * share of it inside the corridor is clamp(s*levels - q, 0, 1). Counting that share rather than
+   * a yes/no keeps coverage growing smoothly with the slider instead of jumping every 1/levels.
+   */
   private rebuild() {
     const f = this.index.finest;
-    // inside when depth < scale * levels, i.e. depth <= maxDepth
-    const maxDepth = Math.min(this.index.distLevels - 1, Math.ceil(this.scale * this.index.distLevels) - 1);
+    const L = this.index.distLevels;
+    const edge = this.scale * L;
+    const weight = new Uint8Array(L + 1); // by depth step; step L = outside every corridor
+    for (let q = 0; q < L; q++) weight[q] = Math.round(FULL * Math.min(1, Math.max(0, edge - q)));
     const count = new Uint8Array(f.w * f.h);
     const d = this.depth;
-    for (let i = 0; i < count.length; i++) count[i] = d[i] <= maxDepth ? 1 : 0;
+    for (let i = 0; i < count.length; i++) count[i] = weight[d[i]];
     this.levels.clear();
     let level: Level = { M: f.maskZoom, x0: f.x0, y0: f.y0, w: f.w, h: f.h, count, finePerCell: 1 };
     this.levels.set(level.M, level);
@@ -90,7 +100,8 @@ export class Mask {
     const x1 = Math.floor((l.x0 + l.w - 1) / 2), y1 = Math.floor((l.y0 + l.h - 1) / 2);
     const w = x1 - x0 + 1, h = y1 - y0 + 1;
     const finePerCell = l.finePerCell * 4;
-    const count: Counts = finePerCell <= 255 ? new Uint8Array(w * h) : finePerCell <= 65535 ? new Uint16Array(w * h) : new Uint32Array(w * h);
+    const max = finePerCell * FULL;
+    const count: Counts = max <= 255 ? new Uint8Array(w * h) : max <= 65535 ? new Uint16Array(w * h) : new Uint32Array(w * h);
     const ox = x0 * 2 - l.x0, oy = y0 * 2 - l.y0; // fine coords of coarse (0,0)
     for (let cy = 0; cy < h; cy++) {
       const fy0 = oy + cy * 2, fy1 = fy0 + 1;
@@ -108,15 +119,21 @@ export class Mask {
 
   private maskZoomFor(z: number) { return Math.min(z + this.index.subdivision, this.index.maxMaskZoom); }
 
+  /** Minimum count for a cell of this level to show. Finest cells show as soon as any of them is inside. */
+  private needFor(l: Level): number {
+    if (l.finePerCell === 1) return 1;
+    const cf = this.index.coarseFraction;
+    const minFraction = cf.cap - (cf.cap - cf.t0) * Math.exp(-cf.k * (this.scale - cf.s0));
+    return Math.max(1, Math.ceil(l.finePerCell * FULL * minFraction));
+  }
+
   /**
    * Visible cells of one coarse level as a bitmap, for drawing an overview. Cells are in web
    * mercator tile units at mask zoom M (world = 2^M cells across).
    */
   silhouette(M: number): { M: number; x0: number; y0: number; w: number; h: number; on: Uint8Array } {
     const l = this.levels.get(M) ?? this.levels.get(this.index.minLevel + this.index.subdivision)!;
-    const cf = this.index.coarseFraction;
-    const minFraction = Math.min(cf.cap, cf.base + cf.perScale * this.scale);
-    const need = l.finePerCell === 1 ? 1 : Math.max(1, Math.ceil(l.finePerCell * minFraction));
+    const need = this.needFor(l);
     const on = new Uint8Array(l.w * l.h);
     for (let i = 0; i < on.length; i++) on[i] = l.count[i] >= need ? 1 : 0;
     return { M: l.M, x0: l.x0, y0: l.y0, w: l.w, h: l.h, on };
@@ -129,9 +146,7 @@ export class Mask {
   coverage(z: number, x: number, y: number): Coverage {
     const M = this.maskZoomFor(z);
     const l = this.levels.get(M) ?? this.levels.get(this.index.minLevel + this.index.subdivision)!;
-    const cf = this.index.coarseFraction;
-    const minFraction = Math.min(cf.cap, cf.base + cf.perScale * this.scale);
-    const need = l.finePerCell === 1 ? 1 : Math.max(1, Math.ceil(l.finePerCell * minFraction));
+    const need = this.needFor(l);
     let n: number, cx0: number, cy0: number;
     if (l.M >= z) { n = 1 << (l.M - z); cx0 = x * n; cy0 = y * n; }
     else { n = 1; cx0 = x >> (z - l.M); cy0 = y >> (z - l.M); }
