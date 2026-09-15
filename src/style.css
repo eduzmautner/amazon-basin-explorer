@@ -5,6 +5,7 @@
   --shadow: rgba(255, 255, 255, 0.55);
   --border: #737378; /* mirror of the dark-mode border: same distance from white as #8c8c87 is from black */
   --muted: rgba(31, 36, 33, 0.55);
+  --muted-dim: rgba(31, 36, 33, 0.33); /* --muted at 60% strength: idle controls */
   --panel: rgba(251, 250, 249, 0.8);
   color-scheme: light;
 }
@@ -15,6 +16,7 @@
   --shadow: rgba(0, 0, 0, 0.6);
   --border: #8c8c87; /* boxes and the continent outline (#9c9c96 at 90% brightness) */
   --muted: rgba(232, 235, 230, 0.55);
+  --muted-dim: rgba(232, 235, 230, 0.33);
   --panel: rgba(5, 6, 5, 0.7);
   color-scheme: dark;
 }
@@ -91,10 +93,13 @@ html, body {
 /* snapshot button: same frame as the slider box */
 #snapshot {
   width: 100%; box-sizing: border-box; padding: 7px 12px; cursor: pointer; text-align: left;
-  background: var(--bg); border: 1px solid var(--border); color: var(--fg);
+  margin-top: -6px; /* 4px below the slider box */
+  /* idle: text and border in the same grey as the "Visible Land" label; hover: the full-strength box */
+  background: var(--bg); border: 1px solid var(--muted-dim); color: var(--muted-dim);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em;
+  transition: color .12s ease, border-color .12s ease;
 }
-#snapshot:hover { color: var(--fg); border-color: var(--fg); }
+#snapshot:hover { color: var(--fg); border-color: var(--border); }
 #snapshot:disabled { color: var(--fg-soft); cursor: default; }
 #controls { align-items: stretch; }
 #controls > #theme { align-self: flex-end; }
