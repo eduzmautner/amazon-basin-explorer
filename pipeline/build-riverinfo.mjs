@@ -157,13 +157,7 @@ if (!fs.existsSync(CACHE)) { fs.writeFileSync(CACHE, JSON.stringify(Object.fromE
 // ---- water type (literature; applied to the dominant river of each name only) ----
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/^(rio|río|river)\s+/, '').trim();
 const dominant = new Map(); // normalised name -> rid with the most reaches
-for (const r of rivers) { const k = norm(r.name); const cur = dominant.get(k); if (!cur || cur.reaches.length < r.reaches.length) dominant.set(k, r); }
-
-// groups of one name that resolve to the same mouth are one river: alias them to the dominant
-const byMouth = new Map();
-for (const r of rivers) { const k = norm(r.name) + '@' + sections.get(r.rid).mouth; (byMouth.get(k) ?? byMouth.set(k, []).get(k)).push(r); }
-const canonical = new Map(); // rid -> rid of the dominant group with the same mouth
-for (const group of byMouth.values()) { const dom = group.reduce((a, b) => (b.reaches.length > a.reaches.length ? b : a)); for (const r of group) canonical.set(r.rid, dom.rid); }
+for (const r of rivers) { const k = norm(r.name); const cur = dominant.get(k); if (!cur || size.get(cur.rid) < size.get(r.rid)) dominant.set(k, r); }
 
 // ---- assemble ----
 const out = {};
@@ -174,8 +168,10 @@ for (const r of rivers) {
   const m = atlas.get(s.mouth), t = atlas.get(s.top);
   if (!m) { missing++; continue; }
   const eleSrc = t ? t.ele : null;
-  const canon = canonical.get(r.rid);
-  const water = dominant.get(norm(r.name))?.rid === canon ? (WATER_TYPES[norm(r.name)] ?? null) : null;
+  // water type: the biggest river of that name, and any section of it (Peruvian Amazonas, Solimões
+  // sections) within a tenth of its size; small namesakes elsewhere get none
+  const dom = dominant.get(norm(r.name));
+  const water = dom && size.get(r.rid) >= size.get(dom.rid) / 10 ? (WATER_TYPES[norm(r.name)] ?? null) : null;
   out[r.rid] = {
     name: r.name,
     lengthKm: round(s.lengthKm),
