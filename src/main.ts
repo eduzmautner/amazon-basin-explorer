@@ -220,9 +220,12 @@ async function boot() {
     if (info) showRiver(info);
   };
   if (import.meta.env.DEV) (window as any).__openRiver = openRiver;
-  map.on('click', 'river-names', async (e) => {
-    const f = e.features?.[0];
-    const rid = f?.properties?.rid as string | undefined;
+  // a finger is not a pixel: look for a label within a box around the tap, nearest first
+  const TAP_PX = 14;
+  map.on('click', async (e) => {
+    const { x, y } = e.point;
+    const hits = map!.queryRenderedFeatures([[x - TAP_PX, y - TAP_PX], [x + TAP_PX, y + TAP_PX]], { layers: ['river-names'] });
+    const rid = hits[0]?.properties?.rid as string | undefined;
     if (rid) await openRiver(rid);
   });
   const cc = map.getCanvasContainer();

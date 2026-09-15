@@ -141,3 +141,20 @@ html, body {
 #river-panel td:last-child { text-align: right; color: var(--fg); font-weight: 700; }
 #river-panel .note { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .maplibregl-canvas-container.maplibregl-interactive.on-label { cursor: pointer !important; }
+
+/* phones: the info panel becomes a bottom sheet; less chrome on screen */
+@media (max-width: 640px) {
+  #brand { font-size: 13px; }
+  #brand span { display: none; }
+  #controls { gap: 8px; }
+  #visible { width: 120px; }
+  #hint { display: none; }
+  .maplibregl-ctrl.minimap { display: none !important; }
+  #river-panel {
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55vh;
+    border-left: none; border-right: none; border-bottom: none;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  #river-panel h2 { font-size: 14px; }
+  #rp-close { font-size: 20px; padding: 0 6px; }
+}
