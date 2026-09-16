@@ -90,8 +90,8 @@ async function boot() {
           // butt caps: rivers are pre-chained into continuous lines, so ends only meet at confluences,
           // and flat ends there stack less than round ones
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
-          // opacity by Strahler order: 5% per step from 20% at order 4 (and below) to 50% at the order 10 Amazon
-          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': ['*', 0.05, ['max', 4, ['coalesce', ['get', 'ord'], 4]]] },
+          // opacity by Strahler order: 5% per step from 15% at order 3 (and below) to 50% at the order 10 Amazon
+          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] },
         },
         {
           id: 'river-names',
