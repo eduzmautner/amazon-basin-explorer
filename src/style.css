@@ -62,7 +62,8 @@ html, body {
 .maplibregl-ctrl-bottom-left { margin: 0 0 12px 12px; }
 
 /* controls (top right) */
-#controls { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: auto; }
+/* the boxes stack with shared 1px borders like a table; only the snapshot button sits apart */
+#controls { display: flex; flex-direction: column; align-items: flex-end; gap: 0; pointer-events: auto; }
 #visible-control {
   display: flex; flex-direction: column; gap: 8px; padding: 8px 12px;
   /* same treatment as the minimap: opaque page background, 1px border, square corners */
@@ -92,7 +93,7 @@ html, body {
 /* snapshot button: same frame as the slider box */
 #snapshot {
   width: 100%; box-sizing: border-box; padding: 7px 12px; cursor: pointer; text-align: left;
-  margin-top: -6px; /* 4px below the slider box */
+  margin-top: 4px; /* a small gap below the table of boxes */
   /* idle: text and border in the same grey as the "Visible Land" label; hover: the full-strength box */
   background: var(--bg); border: 1px solid var(--muted-dim); color: var(--muted-dim);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em;
@@ -101,7 +102,7 @@ html, body {
 #snapshot:hover { color: var(--fg); border-color: var(--border); }
 #snapshot:disabled { color: var(--fg-soft); cursor: default; }
 #controls { align-items: stretch; }
-#controls > #theme { align-self: flex-end; }
+#controls > #theme { align-self: flex-end; margin-bottom: 10px; }
 
 /* cursor like Google Maps: arrow at rest, move while dragging (MapLibre defaults to grab/grabbing) */
 .maplibregl-canvas-container.maplibregl-interactive { cursor: default !important; }
@@ -109,7 +110,7 @@ html, body {
 
 /* River Trails / River Labels toggles: same frame as the slider box, a square check box with an X when on */
 #trails-control, #labels-control {
-  display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-top: -6px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-top: -1px; cursor: pointer;
   background: var(--bg); border: 1px solid var(--border); color: var(--muted);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em; user-select: none;
 }
@@ -125,7 +126,7 @@ html, body {
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {
-  display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin-top: -6px;
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin-top: -1px;
   background: var(--bg); border: 1px solid var(--border); color: var(--muted);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em; user-select: none;
 }
@@ -162,7 +163,7 @@ html, body {
 @media (max-width: 640px) {
   #brand { font-size: 13px; }
   #brand span { display: none; }
-  #controls { gap: 8px; }
+  #controls > #theme { margin-bottom: 8px; }
   #visible { width: 120px; }
   #hint { display: none; }
   #river-panel {

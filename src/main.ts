@@ -131,7 +131,7 @@ async function boot() {
     attributionControl: false,
     // heavier, longer glide when panning
     dragPan: { linearity: 0.25, maxSpeed: 2200, deceleration: 1500 },
-    fadeDuration: 400,
+    fadeDuration: 0, // labels appear and disappear instantly, matching the River Labels toggle both ways
     canvasContextAttributes: { preserveDrawingBuffer: true }, // lets the snapshot button read the canvas at any time
   });
   if (import.meta.env.DEV) (window as any).__map = map; // handy for poking at the map from devtools
@@ -241,7 +241,7 @@ async function boot() {
   const trails = document.getElementById('trails') as HTMLInputElement;
   const TRAILS_KEY = 'amazon-explorer-trails';
   const applyTrails = () => map!.setLayoutProperty('river-trails', 'visibility', trails.checked ? 'visible' : 'none');
-  try { trails.checked = localStorage.getItem(TRAILS_KEY) === '1'; } catch {}
+  try { trails.checked = localStorage.getItem(TRAILS_KEY) !== '0'; } catch {} // on by default
   map.once('load', applyTrails);
   trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
 
