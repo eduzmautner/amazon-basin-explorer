@@ -27,8 +27,8 @@ export const OUTSIDE_LEVEL = 15;
 // between headwater corridors on the divide do not let the "outside" leak in.
 export const INTERIOR_CLOSE_CELLS = 2;
 // "Visible land" slider = corridor scale (1 = full corridor widths, 0.05 = a sliver either side of
-// each river). Default position:
-export const DEFAULT_CORRIDOR_SCALE = 0.75;
+// each river). Default position: the whole basin.
+export const DEFAULT_CORRIDOR_SCALE = 1;
 // A coarse (zoomed-out) cell is shown when the fraction of its ground area inside a (scaled)
 // corridor is at least T(s) = cap - (cap - t0) * exp(-k * (s - s0)), s = slider (0.15..1).
 // The curve was fitted so the share of the basin shown grows steadily at every 5% step: ~10% at

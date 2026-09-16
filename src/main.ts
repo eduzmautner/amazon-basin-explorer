@@ -155,9 +155,8 @@ async function boot() {
   // "visible land" slider: re-threshold the reveal grid and reload the imagery tiles
   const slider = document.getElementById('visible') as HTMLInputElement;
   const readout = document.getElementById('visible-value')!;
-  const VIS_KEY = 'amazon-explorer-corridor-scale';
-  // remembered values from before the 5% steps get snapped onto the grid
-  try { const v = Math.round(Number(localStorage.getItem(VIS_KEY)) / 5) * 5; if (v >= 15 && v <= 100) mask.setVisible(v / 100); } catch {}
+  // always opens at the default (the whole basin); the slider is not remembered between visits
+  try { localStorage.removeItem('amazon-explorer-corridor-scale'); } catch {}
   slider.value = String(Math.round(mask.getVisible() * 100));
   const showValue = () => { readout.textContent = slider.value + '%'; };
   showValue();
@@ -171,7 +170,6 @@ async function boot() {
       mask.setVisible(v);
       showValue();
       minimap.refresh();
-      try { localStorage.setItem(VIS_KEY, slider.value); } catch {}
       (map!.getSource('imagery') as maplibregl.RasterTileSource).setTiles([`masked://{z}/{x}/{y}?v=${v}`]);
     }, 120);
   });

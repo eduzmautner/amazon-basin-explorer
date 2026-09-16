@@ -1,1 +1,1 @@
-{"subdivision":5,"maxMaskZoom":17,"minLevel":3,"maxLevel":12,"distLevels":14,"interiorLevel":14,"coarseFraction":{"t0":0.2,"s0":0.15,"k":2.8,"cap":0.62},"defaultWidth":0.75,"finest":{"maskZoom":17,"x0":36531,"y0":63588,"w":10698,"h":9589,"file":"finest.bin.gz"}}
+{"subdivision":5,"maxMaskZoom":17,"minLevel":3,"maxLevel":12,"distLevels":14,"interiorLevel":14,"coarseFraction":{"t0":0.2,"s0":0.15,"k":2.8,"cap":0.62},"defaultWidth":1,"finest":{"maskZoom":17,"x0":36531,"y0":63588,"w":10698,"h":9589,"file":"finest.bin.gz"}}
