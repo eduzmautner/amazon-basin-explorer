@@ -107,21 +107,21 @@ html, body {
 .maplibregl-canvas-container.maplibregl-interactive { cursor: default !important; }
 .maplibregl-canvas-container.maplibregl-interactive:active { cursor: move !important; }
 
-/* River Trails toggle: same frame as the slider box, a square check box with an X when on */
-#trails-control {
+/* River Trails / River Labels toggles: same frame as the slider box, a square check box with an X when on */
+#trails-control, #labels-control {
   display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-top: -6px; cursor: pointer;
   background: var(--bg); border: 1px solid var(--border); color: var(--muted);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em; user-select: none;
 }
-#trails-control input { position: absolute; opacity: 0; width: 0; height: 0; }
-#trails-control .box {
+#trails-control input, #labels-control input { position: absolute; opacity: 0; width: 0; height: 0; }
+#trails-control .box, #labels-control .box {
   order: 2; margin-left: auto; /* box sits at the right edge, label text on the left */
   width: 11px; height: 11px; box-sizing: border-box; border: 1px solid var(--fg); display: grid; place-items: center;
   font-size: 10px; line-height: 1; font-weight: 700; color: var(--fg);
 }
-#trails-control input:checked + .box::before { content: "X"; }
-#trails-control:hover { color: var(--fg); }
-#trails-control input:focus-visible + .box { outline: 1px solid var(--fg); outline-offset: 2px; }
+#trails-control input:checked + .box::before, #labels-control input:checked + .box::before { content: "X"; }
+#trails-control:hover, #labels-control:hover { color: var(--fg); }
+#trails-control input:focus-visible + .box, #labels-control input:focus-visible + .box { outline: 1px solid var(--fg); outline-offset: 2px; }
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {

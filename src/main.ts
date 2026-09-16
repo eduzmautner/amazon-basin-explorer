@@ -245,6 +245,17 @@ async function boot() {
   map.once('load', applyTrails);
   trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
 
+  // River Labels toggle: names off = free exploring, nothing to tap; the info panel closes with them
+  const labelsToggle = document.getElementById('labels') as HTMLInputElement;
+  const LABELS_KEY = 'amazon-explorer-labels';
+  const applyLabels = () => {
+    map!.setLayoutProperty('river-names', 'visibility', labelsToggle.checked ? 'visible' : 'none');
+    if (!labelsToggle.checked) { panel.hidden = true; cc.classList.remove('on-label'); }
+  };
+  try { labelsToggle.checked = localStorage.getItem(LABELS_KEY) !== '0'; } catch {}
+  map.once('load', applyLabels);
+  labelsToggle.addEventListener('change', () => { applyLabels(); try { localStorage.setItem(LABELS_KEY, labelsToggle.checked ? '1' : '0'); } catch {} });
+
   // Units toggle: miles / kilometres on the scale bar (the river data is already metric)
   const unitButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#units-control button[data-unit]'));
   const applyUnits = () => {
