@@ -16,13 +16,13 @@ const THRESHOLD = { 3: 40000, 4: 40000, 5: 15000, 6: 5000, 7: 1500, 8: 500, 9: 1
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 // 1. load reaches
-const reaches = new Map(); // id -> { down, up, c }
+const reaches = new Map(); // id -> { down, up, ord, c }
 {
   const rl = readline.createInterface({ input: fs.createReadStream(IN) });
   for await (const line of rl) {
     if (!line) continue;
     const r = JSON.parse(line);
-    reaches.set(r.id, { down: r.down, up: r.up, c: r.c });
+    reaches.set(r.id, { down: r.down, up: r.up, ord: r.stra, c: r.c });
   }
 }
 log('reaches:', reaches.size);
@@ -30,6 +30,8 @@ log('reaches:', reaches.size);
 // 2. chain reaches into continuous rivers. At each confluence the largest upstream reach continues
 //    the line; the others end there. So a river is one feature from its head to where it joins a
 //    bigger one, and line ends only overlap at real confluences instead of every 4 km.
+//    Each chain is then cut into runs of constant Strahler order (the style fades lines by order),
+//    after smoothing so the cut falls on the curve, with the cut vertex shared by both runs.
 const mainPred = new Map(); // downstream id -> id of its largest upstream reach
 for (const [id, r] of reaches) {
   if (!reaches.has(r.down)) continue;
@@ -42,19 +44,32 @@ const features = [];
 for (const [id] of reaches) {
   if (hasUpstream.has(id)) continue; // not a headwater: some chain passes through it
   const coords = [];
+  const runs = []; // { ord, start }: index in coords of the run's first vertex
   let cur = id, maxUp = 0;
   for (;;) {
     const r = reaches.get(cur);
     maxUp = Math.max(maxUp, r.up);
+    const start = coords.length ? coords.length - 1 : 0;
+    if (!runs.length || runs[runs.length - 1].ord !== r.ord) runs.push({ ord: r.ord, start });
     for (let i = coords.length ? 1 : 0; i < r.c.length; i++) coords.push(r.c[i]);
     const next = r.down;
     if (!reaches.has(next) || mainPred.get(next) !== cur) break;
     cur = next;
   }
-  features.push({ type: 'Feature', properties: { up: Math.round(maxUp) }, geometry: { type: 'LineString', coordinates: smooth(coords, 2) } });
+  // smooth() maps source vertex i to smoothed vertex 2i per pass (endpoints stay put), so a run
+  // boundary at source vertex b sits at smoothed vertex b * (smoothed.length / coords.length)
+  const sm = smooth(coords, 2);
+  const f = sm.length / coords.length; // 4 after two passes, 1 when the chain was too short to smooth
+  const up = Math.round(maxUp); // the chain's size at its mouth, on every run, so big rivers draw whole at low zoom
+  for (let k = 0; k < runs.length; k++) {
+    const a = runs[k].start * f, b = k + 1 < runs.length ? runs[k + 1].start * f : sm.length - 1;
+    const seg = sm.slice(a, b + 1);
+    if (seg.length < 2) continue;
+    features.push({ type: 'Feature', properties: { up, ord: runs[k].ord }, geometry: { type: 'LineString', coordinates: seg } });
+  }
 }
 void isMainPredOfSomething;
-log('rivers after chaining:', features.length);
+log('river runs after chaining and cutting by order:', features.length);
 
 // Chaikin corner cutting: the source follows a 460 m grid in 45° steps; two passes round that into
 // curves without moving any point more than about half a cell.
