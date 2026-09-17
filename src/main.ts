@@ -51,7 +51,7 @@ async function boot() {
           minzoom: 3,
           maxzoom: 17,
           attribution:
-            'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors',
+            'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors, ANA (BHO 2017)',
         },
         outline: { type: 'geojson', data: BASE + 'outline.json' },
         labels: {

@@ -1,5 +1,6 @@
 // Builds river-name vector tiles.
-//  1. read named OSM waterways (data/work/osm-names.ndjson)
+//  1. read named OSM waterways (data/work/osm-names.ndjson), plus ANA's named reaches for Brazil
+//     (data/work/ana-names.ndjson) to fill the stretches OSM leaves unnamed
 //  2. chain ways that share a name and touch end-to-end into longer lines
 //  3. match every line to the nearest HydroRIVERS reach to inherit its upstream area (size)
 //  4. cut into vector tiles with geojson-vt, keeping in each zoom only rivers revealed at that zoom
@@ -13,6 +14,9 @@ import { REVEAL_THRESHOLD_BY_ZOOM, MAX_MASK_LEVEL } from './config.mjs';
 
 const OSM = 'data/work/osm-names.ndjson';
 const OSM_RELATIONS = 'data/work/osm-relations.ndjson'; // member ways of named river relations (optional)
+const ANA = 'data/work/ana-names.ndjson'; // ANA BHO named reaches, Brazil (optional): gap filler behind OSM
+const SAME_NAME_KM = 3;   // an ANA vertex this close to an OSM line of the same name is already labelled
+const ANA_MIN_RUN_KM = 1; // shorter leftovers between OSM pieces are not worth a label
 const RIVERS = 'data/work/amazon.ndjson';
 const OUT = 'public/labels';
 const MIN_Z = 3, MAX_Z = 11;
@@ -20,7 +24,7 @@ const MATCH_KM = 1.5;      // max distance from an OSM vertex to a HydroRIVERS r
 const MATCH_KM_WIDE = 6;   // fallback for the widest rivers, whose OSM centreline can sit far from HydroRIVERS'
 // Names that denote creeks, side channels or lakes cannot be big rivers; matches onto reaches above
 // this upstream area are strays (a floodplain creek snapping to the main stem beside it).
-const MINOR_NAME = /^(igarap[eé]|furo|paran[aáã]|canal|bra[cç]o|quebrada|ca[nñ]o|lago|lagoa|entrada|sacado|riacho|c[oó]rrego|arroyo|demarca)/i;
+const MINOR_NAME = /^(igarap[eé]|furo|paran[aáã]|canal|bra[cç]o|quebrada|ca[nñ]o|lago|lagoa|entrada|sacado|riacho|c[oó]rrego|arroyo|arroio|ribeir[aã]o|corixo|grot[aã]o?|demarca)/i;
 const MINOR_MAX_UP = 20000;
 // A line this long is a big river; along big rivers the nearest reach is often a floodplain side
 // channel, so for long lines take the largest reach within range instead of the nearest.
@@ -57,6 +61,7 @@ log('OSM named ways:', ways.length);
 
 // ---------- 2. chain ways by name ----------
 const key = (p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`;
+function chainByName(ways) {
 const byName = new Map();
 for (const w of ways) { if (!byName.has(w.name)) byName.set(w.name, []); byName.get(w.name).push(w); }
 const lines = [];
@@ -73,14 +78,18 @@ for (const [name, group] of byName) {
     if (used[i]) continue;
     used[i] = 1;
     let coords = group[i].c.slice();
+    let ups = group[i].u?.slice(); // per-vertex upstream area, when the source has one (ANA)
     // extend forward
-    for (;;) { const j = take(startIdx, coords[coords.length - 1]); if (j === undefined) break; used[j] = 1; coords = coords.concat(group[j].c.slice(1)); }
+    for (;;) { const j = take(startIdx, coords[coords.length - 1]); if (j === undefined) break; used[j] = 1; coords = coords.concat(group[j].c.slice(1)); if (ups) ups = ups.concat(group[j].u.slice(1)); }
     // extend backward
-    for (;;) { const j = take(endIdx, coords[0]); if (j === undefined) break; used[j] = 1; coords = group[j].c.slice(0, -1).concat(coords); }
-    lines.push({ name, kind: group[i].kind, c: coords });
+    for (;;) { const j = take(endIdx, coords[0]); if (j === undefined) break; used[j] = 1; coords = group[j].c.slice(0, -1).concat(coords); if (ups) ups = group[j].u.slice(0, -1).concat(ups); }
+    lines.push({ name, kind: group[i].kind, c: coords, u: ups });
   }
 }
-log('chained lines:', lines.length, 'distinct names:', byName.size);
+return { lines, names: byName.size };
+}
+const { lines, names: osmNames } = chainByName(ways);
+log('chained lines:', lines.length, 'distinct names:', osmNames);
 
 // ---------- 3. match to HydroRIVERS ----------
 const grid = new Map(); // "gx,gy" -> array of [x1,y1,x2,y2,up,id]
@@ -127,6 +136,32 @@ function largestUpWithin(lon, lat, maxKm) {
   }
   return bestUp >= 0 ? [bestUp, bestId] : null;
 }
+// ANA reaches know their own upstream area, so match them by size: of the reaches within range, the
+// one whose area is closest (as a ratio), and only if it is within ANA_SIZE_RATIO. This keeps a
+// floodplain tributary that runs beside a big river off the big river's reaches.
+const ANA_MATCH_KM = 3, ANA_SIZE_RATIO = 4;
+function closestSizeWithin(lon, lat, target, maxKm = ANA_MATCH_KM) {
+  const cosl = Math.cos((lat * Math.PI) / 180);
+  const rDeg = maxKm / KM_PER_DEG;
+  const gx0 = Math.floor((lon - rDeg) / GRID_DEG), gx1 = Math.floor((lon + rDeg) / GRID_DEG);
+  const gy0 = Math.floor((lat - rDeg) / GRID_DEG), gy1 = Math.floor((lat + rDeg) / GRID_DEG);
+  const max2 = rDeg * rDeg, lt = Math.log(Math.max(target, 1));
+  let best = Math.log(ANA_SIZE_RATIO), bestUp = -1, bestId = 0;
+  for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) {
+    const cell = grid.get(gx + ',' + gy);
+    if (!cell) continue;
+    for (const [x1, y1, x2, y2, up, id] of cell) {
+      const fit = Math.abs(Math.log(Math.max(up, 1)) - lt);
+      if (fit >= best) continue;
+      const ax = (x1 - lon) * cosl, ay = y1 - lat, bx = (x2 - lon) * cosl, by = y2 - lat;
+      const dx = bx - ax, dy = by - ay, ll = dx * dx + dy * dy;
+      let t = ll > 0 ? -(ax * dx + ay * dy) / ll : 0; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const ex = ax + t * dx, ey = ay + t * dy;
+      if (ex * ex + ey * ey <= max2) { best = fit; bestUp = up; bestId = id; }
+    }
+  }
+  return bestUp >= 0 ? [bestUp, bestId] : null;
+}
 function nearestUp(lon, lat, maxKm = MATCH_KM) {
   const cosl = Math.cos((lat * Math.PI) / 180);
   const rDeg = maxKm / KM_PER_DEG;
@@ -146,6 +181,82 @@ function nearestUp(lon, lat, maxKm = MATCH_KM) {
   }
   return Math.sqrt(best) * KM_PER_DEG <= maxKm ? [bestUp, bestId] : null;
 }
+// ---------- 2b. ANA names where OSM has none ----------
+// OSM stays the primary source. An ANA vertex counts as already labelled when an OSM line of the
+// same name (accents and case ignored) passes within SAME_NAME_KM, or when the HydroRIVERS reach
+// under it is one an OSM line runs along (so a river OSM calls something else is left to OSM).
+// Only the unlabelled runs of each ANA river are added.
+if (fs.existsSync(ANA)) {
+  // Names compare without accents, case, punctuation or the generic first word ("Rio", "Igarapé"), and
+  // tolerate a letter or two of spelling drift (Itonamas / Itonomas, Jiparaná / Ji-Paraná). OSM's
+  // bilingual names ("Rio Guaporé (Brasil) / Rio Itenez (Bolivia)") count under each alternative.
+  const GENERIC = /^(rio|river|riozinho|igarape|corrego|ribeirao|cano|quebrada|arroyo|arroio|parana|furo|braco|riacho|corixo|grota)\s+/;
+  const norm = (n) => n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().replace(GENERIC, '').replace(/ /g, '');
+  const alternatives = (n) => n.split('/').map((p) => norm(p.replace(/\([^)]*\)/g, ' '))).filter(Boolean);
+  const within = (a, b, max) => { // edit distance <= max
+    if (Math.abs(a.length - b.length) > max) return false;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i]; let rowMin = i;
+      for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (cur[j] < rowMin) rowMin = cur[j]; }
+      if (rowMin > max) return false;
+      prev = cur;
+    }
+    return prev[b.length] <= max;
+  };
+  const sameName = (a, b) => a === b || within(a, b, Math.min(a.length, b.length) >= 9 ? 2 : Math.min(a.length, b.length) >= 5 ? 1 : 0);
+  const CELL = SAME_NAME_KM / KM_PER_DEG; // hash cell = the search radius, looked up as a 3x3 block
+  const nameCells = new Map();  // "gx,gy" -> Set of normalised OSM names passing through the cell
+  const claimed = new Set();    // reach ids an OSM line runs along
+  const osmSpelling = new Map(); // normalised name -> OSM's spelling (plain names only, not "A / B")
+  for (const l of lines) {
+    const nns = alternatives(l.name), minor = MINOR_NAME.test(l.name);
+    if (!l.name.includes('/') && !osmSpelling.has(nns[0])) osmSpelling.set(nns[0], l.name);
+    const mark = (gx, gy) => { const k = gx + ',' + gy; const set = nameCells.get(k) ?? nameCells.set(k, new Set()).get(k); for (const a of nns) set.add(a); };
+    let lastX = Infinity, lastY = Infinity;
+    for (let i = 0; i < l.c.length; i++) {
+      const [x, y] = l.c[i];
+      if (i > 0) { // cells along the segment, so sparse vertices leave no holes
+        const [px, py] = l.c[i - 1];
+        const steps = Math.ceil(Math.max(Math.abs(x - px), Math.abs(y - py)) / CELL);
+        for (let k = 1; k < steps; k++) mark(Math.floor((px + ((x - px) * k) / steps) / CELL), Math.floor((py + ((y - py) * k) / steps) / CELL));
+      }
+      mark(Math.floor(x / CELL), Math.floor(y / CELL));
+      if (Math.abs(x - lastX) + Math.abs(y - lastY) < 0.003) continue; // reach lookups every ~300 m are plenty
+      lastX = x; lastY = y;
+      const h = nearestUp(x, y);
+      if (h && !(minor && h[0] > MINOR_MAX_UP)) claimed.add(h[1]);
+    }
+  }
+  log('OSM coverage: name cells', nameCells.size, 'reaches claimed', claimed.size);
+  const anaWays = [];
+  const rl = readline.createInterface({ input: fs.createReadStream(ANA) });
+  for await (const line of rl) { if (!line) continue; const f = JSON.parse(line); anaWays.push({ name: f.properties.name, kind: 'river', c: f.geometry.coordinates, u: new Array(f.geometry.coordinates.length).fill(f.properties.up ?? 0) }); }
+  const ana = chainByName(anaWays);
+  let added = 0, addedKm = 0, fullyCovered = 0;
+  for (const l of ana.lines) {
+    const nn = norm(l.name);
+    let spelling; // OSM's spelling when it names part of this same river: the added runs join that river
+    const covered = l.c.map(([x, y]) => {
+      const gx = Math.floor(x / CELL), gy = Math.floor(y / CELL);
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const set = nameCells.get((gx + dx) + ',' + (gy + dy)); if (set) for (const o of set) if (sameName(nn, o)) { spelling ??= osmSpelling.get(o); return true; } }
+      return false;
+    }).map((cov, vi) => { if (cov) return true; const h = closestSizeWithin(l.c[vi][0], l.c[vi][1], l.u[vi]); return !!h && claimed.has(h[1]); });
+    let any = false;
+    for (let i = 0; i < l.c.length; ) {
+      if (covered[i]) { i++; continue; }
+      let j = i; while (j + 1 < l.c.length && !covered[j + 1]) j++;
+      const run = l.c.slice(i, j + 1), runUps = l.u.slice(i, j + 1);
+      let km = 0;
+      for (let k = 1; k < run.length; k++) km += Math.hypot((run[k][0] - run[k - 1][0]) * Math.cos((run[k][1] * Math.PI) / 180), run[k][1] - run[k - 1][1]) * KM_PER_DEG;
+      if (run.length >= 2 && km >= ANA_MIN_RUN_KM) { lines.push({ name: spelling ?? l.name, kind: 'river', c: run, u: runUps, src: 'ana' }); added++; addedKm += km; any = true; }
+      i = j + 1;
+    }
+    if (!any) fullyCovered++;
+  }
+  log(`ANA: ${anaWays.length} reaches, ${ana.lines.length} chained lines (${ana.names} names); added ${added} unlabelled runs, ${Math.round(addedKm)} km; ${fullyCovered} lines already covered by OSM`);
+}
+
 const features = [];
 let unmatched = 0;
 for (const l of lines) {
@@ -158,8 +269,9 @@ for (const l of lines) {
   const sample = (maxKm) => {
     const hits = [];
     for (let s = 0; s < samples; s++) {
-      const [lon, lat] = l.c[Math.floor((s * (n - 1)) / Math.max(1, samples - 1))];
-      const h = matcher(lon, lat, maxKm);
+      const vi = Math.floor((s * (n - 1)) / Math.max(1, samples - 1));
+      const [lon, lat] = l.c[vi];
+      const h = l.u ? closestSizeWithin(lon, lat, l.u[vi]) : matcher(lon, lat, maxKm);
       if (h) hits.push(h);
     }
     return hits;
@@ -305,5 +417,5 @@ for (let z = MIN_Z; z <= MAX_Z; z++) {
   }
   log(`z${z}: ${n} tiles (threshold ${thr} km²)`);
 }
-fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({ minzoom: MIN_Z, maxzoom: MAX_Z, tiles: written, names: byName.size, lines: features.length, keys }));
+fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({ minzoom: MIN_Z, maxzoom: MAX_Z, tiles: written, names: new Set(features.map((f) => f.properties.name)).size, lines: features.length, keys }));
 log(`wrote ${written} tiles, ${(bytes / 1048576).toFixed(1)} MB`);

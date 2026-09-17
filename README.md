@@ -3,7 +3,8 @@
 A satellite map that shows only the Amazon river system: the main stem, every tributary down to the
 smallest stream in the HydroRIVERS model, and a strip of imagery around each one. Everything else
 is masked. Zoomed out, the whole basin reads as a pixel-edged silhouette against the void; zoom in
-and the corridors resolve around each river, with names from OpenStreetMap.
+and the corridors resolve around each river, with names from OpenStreetMap and, inside Brazil,
+from the national water agency ANA.
 
 ## Run it
 
@@ -47,6 +48,10 @@ Tuning knobs live in `pipeline/config.mjs`.
 3. `npm run data:tiles` builds `public/mask/`.
 4. `npm run data:names` fetches named waterways from Overpass in chunks to
    `data/work/osm-names.ndjson`. It is resumable and slow (the public servers rate-limit).
+4b. `node pipeline/fetch-ana-names.mjs` fetches ANA's named river reaches for the Amazon basin (BHO 2017,
+   public feature service, about a minute) to `data/work/ana-names.ndjson`. Optional: OSM stays the
+   primary source, and ANA only labels stretches OSM leaves unnamed, matched to HydroRIVERS by
+   upstream area. Rebuild the river info (5c) after the labels so the new rivers get panels.
 5. `npm run data:labels` builds `public/labels/`.
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract
@@ -80,5 +85,6 @@ Pushes to `main` build the site and publish it to GitHub Pages via `.github/work
 
 Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community. River network:
 HydroRIVERS v1.0 (Lehner & Grill 2013, CC BY 4.0). River attributes: HydroATLAS / RiverATLAS v1.0 (Linke
-et al. 2019, CC BY 4.0). Names © OpenStreetMap contributors (ODbL).
+et al. 2019, CC BY 4.0). Names © OpenStreetMap contributors (ODbL) and Agência Nacional de Águas e Saneamento Básico (ANA),
+Base Hidrográfica Ottocodificada 2017.
 Coastline: Natural Earth (public domain). Open Sans glyphs via fonts.openmaptiles.org.
