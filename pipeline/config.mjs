@@ -48,3 +48,14 @@ export function corridorMiles(uplandKm2) {
   return 0.5 + 4.5 * t;
 }
 export const MILE_M = 1609.344;
+
+// Main-stem naming, Brazilian geographic usage (IBGE, ANA): Río Amazonas in Peru and along the
+// Colombian border; Rio Solimões from where the river enters Brazil at Tabatinga down to the
+// Encontro das Águas at Manaus, where the Rio Negro joins; Rio Amazonas from there to the sea.
+// The main stem flows steadily east, so longitude separates the stretches. The confluence longitude
+// is HydroRIVERS' own (59.902 W, 3.140 S). The main stem proper starts where the Marañón and the
+// Ucayali meet, where the upstream area steps up past MAIN_STEM_MIN_UP.
+export const BORDER_LON = -69.95;
+export const NEGRO_CONFLUENCE_LON = -59.902;
+export const MAIN_STEM_MIN_UP = 700000; // km²
+export const mainStemName = (lon) => (lon < BORDER_LON ? 'Río Amazonas' : lon < NEGRO_CONFLUENCE_LON ? 'Rio Solimões' : 'Rio Amazonas');

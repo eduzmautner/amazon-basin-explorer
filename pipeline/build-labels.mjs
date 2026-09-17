@@ -10,7 +10,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import geojsonvt from 'geojson-vt';
 import vtpbf from 'vt-pbf';
-import { REVEAL_THRESHOLD_BY_ZOOM, MAX_MASK_LEVEL } from './config.mjs';
+import { REVEAL_THRESHOLD_BY_ZOOM, MAX_MASK_LEVEL, mainStemName } from './config.mjs';
 
 const OSM = 'data/work/osm-names.ndjson';
 const OSM_RELATIONS = 'data/work/osm-relations.ndjson'; // member ways of named river relations (optional)
@@ -37,6 +37,25 @@ const LABEL_SIMPLIFY_PX = 10; // generalisation tolerance in screen pixels at ea
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 
+// ---------- main-stem naming convention ----------
+// See mainStemName in config.mjs. OSM's "Rio Amazonas" relation runs the whole river, so every line
+// carrying one of these names is cut at the two boundaries and each piece named for its stretch.
+const MAIN_STEM_NAME = /^(r[ií]o amazonas|rio solim[oõ]es|amazon river|amazonas|amazon)$/i;
+const stretchName = mainStemName;
+function byMainStemConvention(way) {
+  if (!MAIN_STEM_NAME.test(way.name)) return [way];
+  const out = [];
+  for (let i = 0; i < way.c.length; ) {
+    const name = stretchName(way.c[i][0]);
+    let j = i; while (j + 1 < way.c.length && stretchName(way.c[j + 1][0]) === name) j++;
+    // include the first vertex of the next stretch so the pieces still meet end to end
+    const end = Math.min(j + 1, way.c.length - 1);
+    if (end > i) out.push({ ...way, name, c: way.c.slice(i, end + 1), u: way.u?.slice(i, end + 1) });
+    i = j + 1;
+  }
+  return out;
+}
+
 // ---------- 1. OSM ways ----------
 const ways = [];
 {
@@ -51,7 +70,7 @@ const ways = [];
       const f = JSON.parse(line);
       if (seen.has(f.properties.id)) continue; // chunk overlaps / already named
       seen.add(f.properties.id);
-      ways.push({ name: f.properties.name.trim(), kind: f.properties.kind, c: f.geometry.coordinates });
+      ways.push(...byMainStemConvention({ name: f.properties.name.trim(), kind: f.properties.kind, c: f.geometry.coordinates }));
       n++;
     }
     log(`${file}: ${n} ways`);
@@ -231,7 +250,7 @@ if (fs.existsSync(ANA)) {
   log('OSM coverage: name cells', nameCells.size, 'reaches claimed', claimed.size);
   const anaWays = [];
   const rl = readline.createInterface({ input: fs.createReadStream(ANA) });
-  for await (const line of rl) { if (!line) continue; const f = JSON.parse(line); anaWays.push({ name: f.properties.name, kind: 'river', c: f.geometry.coordinates, u: new Array(f.geometry.coordinates.length).fill(f.properties.up ?? 0) }); }
+  for await (const line of rl) { if (!line) continue; const f = JSON.parse(line); anaWays.push(...byMainStemConvention({ name: f.properties.name, kind: 'river', c: f.geometry.coordinates, u: new Array(f.geometry.coordinates.length).fill(f.properties.up ?? 0) })); }
   const ana = chainByName(anaWays);
   let added = 0, addedKm = 0, fullyCovered = 0;
   for (const l of ana.lines) {

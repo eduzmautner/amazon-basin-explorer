@@ -7,15 +7,17 @@ import fs from 'node:fs';
 import readline from 'node:readline';
 import * as shp from 'shapefile';
 import { WATER_TYPES } from './water-types.mjs';
+import { MAIN_STEM_MIN_UP, mainStemName } from './config.mjs';
 
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
 
 // ---- reach graph ----
 const reach = new Map(); // id -> { down, up, len }
+const bigReachLon = new Map(); // id -> longitude, for reaches big enough to be the main stem
 {
   const rl = readline.createInterface({ input: fs.createReadStream('data/work/amazon.ndjson') });
-  for await (const line of rl) { if (!line) continue; const r = JSON.parse(line); reach.set(r.id, { down: r.down, up: r.up, len: r.len }); }
+  for await (const line of rl) { if (!line) continue; const r = JSON.parse(line); reach.set(r.id, { down: r.down, up: r.up, len: r.len }); if (r.up >= MAIN_STEM_MIN_UP) bigReachLon.set(r.id, r.c[Math.floor(r.c.length / 2)][0]); }
 }
 const mainPred = new Map(); // downstream id -> largest upstream reach (the one that "continues" the river)
 for (const [id, r] of reach) {
@@ -23,7 +25,16 @@ for (const [id, r] of reach) {
   const cur = mainPred.get(r.down);
   if (cur === undefined || reach.get(cur).up < r.up) mainPred.set(r.down, id);
 }
-log('reaches:', reach.size);
+// The main stem: from the basin outlet up the largest branch while it is still the Amazon proper.
+// Its reaches are named by the geographic convention (config.mjs), not by size similarity: where the
+// Solimões ends and the Amazonas begins is a defined place, the Negro confluence.
+const mainStemOwner = new Map(); // reach id -> name
+{
+  let outlet; for (const [id, r] of reach) if (!reach.has(r.down) && (outlet === undefined || r.up > reach.get(outlet).up)) outlet = id;
+  for (let cur = outlet; cur !== undefined && reach.get(cur).up >= MAIN_STEM_MIN_UP; cur = mainPred.get(cur)) mainStemOwner.set(cur, mainStemName(bigReachLon.get(cur)));
+}
+const applyMainStem = () => { for (const [id, name] of mainStemOwner) { owner.set(id, name); ownerFit.set(id, -1); } };
+log('reaches:', reach.size, 'main stem reaches:', mainStemOwner.size);
 
 // ---- rivers and their sections along the chain ----
 const rivers = JSON.parse(fs.readFileSync('data/work/label-rivers.json', 'utf8'));
@@ -48,7 +59,8 @@ for (const r of rivers) {
   }
   size.set(r.rid, chosen);
 }
-const ownReaches = (r) => { const cap = 3 * size.get(r.rid); const ok = r.reaches.filter((id) => reach.get(id).up <= cap); return ok.length ? ok : r.reaches; };
+// (main-stem reaches that the naming convention gives to another name are never a river's own)
+const ownReaches = (r) => { const cap = 3 * size.get(r.rid); const mine = r.reaches.filter((id) => !mainStemOwner.has(id) || mainStemOwner.get(id) === r.name); const ok = mine.filter((id) => reach.get(id).up <= cap); return ok.length ? ok : mine.length ? mine : r.reaches; };
 // reach id -> river name. When several rivers claim a reach (the Amazon's OSM relation runs the
 // whole river, Solimões stretch included), the one whose size is closest to the reach wins.
 let owner = new Map();
@@ -57,6 +69,7 @@ for (const r of rivers) for (const id of ownReaches(r)) {
   const fit = Math.abs(Math.log(reach.get(id).up) - Math.log(size.get(r.rid)));
   if (!owner.has(id) || fit < ownerFit.get(id)) { owner.set(id, r.name); ownerFit.set(id, fit); }
 }
+applyMainStem();
 let ownedUps = new Map(); // river name -> sorted ups of the reaches it owns
 const rebuildOwnedUps = () => { ownedUps = new Map(); for (const [id, name] of owner) (ownedUps.get(name) ?? ownedUps.set(name, []).get(name)).push(reach.get(id).up); for (const u of ownedUps.values()) u.sort((a, b) => a - b); };
 rebuildOwnedUps();
@@ -93,6 +106,8 @@ const computeSections = () => { sections = new Map(); for (const r of rivers) {
   // upstream: to the source. At each confluence prefer the branch carrying this river's name (the
   // Beni keeps its name above the larger Madre de Dios), else the largest branch. Stop where another
   // name takes over (Amazonas -> Solimões).
+  // a main-stem name ends where the main stem does, at the Marañón and Ucayali confluence
+  const onMainStem = mainStemOwner.get(mouth) === r.name;
   const chain = [mouth];
   for (let cur = mouth; ;) {
     const ups = upstreamOf.get(cur);
@@ -104,6 +119,7 @@ const computeSections = () => { sections = new Map(); for (const r of rivers) {
     // a folded side channel also carries the name but is far smaller, and must not divert the walk
     const next = best !== undefined && main !== undefined && reach.get(best).up >= reach.get(main).up / 3 ? best : main;
     if (next === undefined) { dbg('up stop: no upstream'); break; }
+    if (onMainStem && !mainStemOwner.has(next)) { dbg('up stop: head of the main stem after', chain.length, 'reaches'); break; }
     const o = owner.get(next);
     if (o !== undefined && o !== r.name && takesOver(o, reach.get(next).up)) { dbg('up stop: owner', o, 'at up', reach.get(next).up, 'after', chain.length, 'reaches'); break; }
     chain.push(next); cur = next;
@@ -124,6 +140,7 @@ for (const r of rivers) {
     if (!owner.has(id) || fit < ownerFit.get(id)) { owner.set(id, r.name); ownerFit.set(id, fit); }
   }
 }
+applyMainStem();
 rebuildOwnedUps();
 computeSections();
 log('rivers:', rivers.size ?? rivers.length);
