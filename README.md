@@ -81,6 +81,13 @@ Pushes to `main` build the site and publish it to GitHub Pages via `.github/work
 (the repo's Pages source must be set to "GitHub Actions"). Production builds use the
 `/amazon-basin-explorer/` base path from `vite.config.ts`.
 
+## Visitor statistics
+
+The page loads [GoatCounter](https://www.goatcounter.com)'s counting script (see the end of `index.html`): page views, countries,
+referrers and screen sizes, with no cookies and nothing personal stored, so no consent banner is needed.
+It does not count visits on localhost. The dashboard is at https://eduzmautner.goatcounter.com.
+Fork this project? Remove that script tag or point it at your own GoatCounter code.
+
 ## Credits
 
 Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community. River network:
