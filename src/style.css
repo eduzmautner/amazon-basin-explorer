@@ -96,7 +96,7 @@ html, body {
   background: var(--bg); border: 1px solid var(--border);
 }
 .zoom-control button {
-  width: 28px; height: 28px; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
+  width: 32px; height: 32px; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
   display: grid; place-items: center; color: var(--muted);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 18px; line-height: 1;
   transition: color .12s ease;

@@ -15,8 +15,8 @@ export class ZoomControl implements maplibregl.IControl {
     this.map = map;
     this.container = document.createElement('div');
     this.container.className = 'maplibregl-ctrl zoom-control';
-    this.plus = this.button('+', 'Zoom in', () => map.zoomIn({ duration: 300 }));
-    this.minus = this.button('−', 'Zoom out', () => map.zoomOut({ duration: 300 }));
+    this.plus = this.button('+', 'Zoom in', () => map.zoomIn({ duration: 400 }));
+    this.minus = this.button('−', 'Zoom out', () => map.zoomOut({ duration: 400 }));
     this.container.append(this.plus, this.minus);
     map.on('zoom', this.sync);
     map.on('resize', this.sync);
