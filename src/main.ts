@@ -5,6 +5,7 @@ import { Mask } from './mask';
 import { registerStaticTilesProtocol, registerMaskedProtocol, TILE_PX } from './tiles';
 import { installInertialZoom } from './inertia';
 import { MiniMapControl } from './minimap';
+import { ZoomControl } from './zoomcontrol';
 import { BASE } from './base';
 
 const THEME_KEY = 'amazon-explorer-theme';
@@ -146,6 +147,7 @@ async function boot() {
   map.addControl(scaleBar, 'bottom-right');
   const minimap = new MiniMapControl(mask);
   map.addControl(minimap, 'bottom-right'); // added after the scale bar, so it stacks above it
+  map.addControl(new ZoomControl(), 'bottom-right'); // above the minimap, or right above the scale bar while that is hidden
   // start collapsed to the (i) button; MapLibre opens it once the style loads
   map.once('load', () => document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
   installInertialZoom(map);
