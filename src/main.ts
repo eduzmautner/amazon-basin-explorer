@@ -309,7 +309,7 @@ async function boot() {
     for (const id of ['country-borders', 'country-names']) map!.setLayoutProperty(id, 'visibility', v);
     minimap.setCountries(countriesToggle.checked);
   };
-  try { countriesToggle.checked = localStorage.getItem(COUNTRIES_KEY) !== '0'; } catch {}
+  try { countriesToggle.checked = localStorage.getItem(COUNTRIES_KEY) === '1'; } catch {} // off by default
   map.once('load', applyCountries);
   countriesToggle.addEventListener('change', () => { applyCountries(); try { localStorage.setItem(COUNTRIES_KEY, countriesToggle.checked ? '1' : '0'); } catch {} });
 
