@@ -129,8 +129,8 @@ html, body {
 /* "Map options" button (phones only, above the zoom buttons): same box as the zoom control */
 .maplibregl-ctrl.options-control { display: none; margin: 0 10px 8px 0 !important; background: var(--bg); border: 1px solid var(--border); }
 .options-control button {
-  width: 36px; height: 36px; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
-  display: grid; place-items: center; color: var(--muted); transition: color .12s ease;
+  width: 36px; height: 36px; padding: 0; margin: 0; border: none; background: none; cursor: pointer; /* phones: 41 px, see below */
+  display: grid; place-items: center; color: var(--fg-soft); transition: color .12s ease; /* solid, not --muted: overlapping translucent strokes show bright joints */
 }
 .options-control button:hover { color: var(--fg); }
 .options-control button:focus-visible { outline: 1px solid var(--fg); outline-offset: -3px; }
@@ -214,7 +214,8 @@ html, body {
   #visible::-moz-range-thumb { width: 16px; height: 16px; }
   #trails-control .box, #labels-control .box, #countries-control .box { width: 16px; height: 16px; font-size: 14px; }
   #snapshot { margin-top: 8px; }
-  .zoom-control button { width: 36px; height: 36px; font-size: 20px; } /* thumb-sized */
+  .zoom-control button, .options-control button { width: 41px; height: 41px; } /* thumb-sized: 36 px + 15% */
+  .zoom-control button { font-size: 23px; }
   #river-panel {
     left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55vh;
     border-left: none; border-right: none; border-bottom: none;
@@ -222,7 +223,11 @@ html, body {
   }
   /* 50% larger type than on desktop; the sheet scrolls rather than squeezing rows */
   #river-panel { font-size: 16.5px; padding: 14px 16px 16px; }
-  #river-panel h2 { font-size: 22px; }
+  #river-panel h2 { font-size: 26px; }
+  #river-panel .water { margin-bottom: 16px; }
+  #river-panel .head:has(+ .water[hidden]) { margin-bottom: 16px; } /* no water type: the same gap sits under the name */
+  #river-panel td:first-child { font-size: 15.5px; }
+  #river-panel td:last-child { font-size: 17.5px; }
   #river-panel td { padding: 9px 0; }
   #river-panel .note { font-size: 7.5px; }
   #rp-close { font-size: 30px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }

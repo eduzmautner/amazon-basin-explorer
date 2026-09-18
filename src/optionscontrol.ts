@@ -16,7 +16,7 @@ export class OptionsControl implements maplibregl.IControl {
     const b = document.createElement('button');
     b.type = 'button'; b.title = 'Map options'; b.setAttribute('aria-label', 'Map options');
     // folded map, three panels: outline plus the two fold lines
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'
       + '<path d="M6.3 7.65 10.1 5.95 13.8 7.65 17.7 5.95 17.7 16.15 13.8 18.05 10.1 16.15 6.3 18.05Z"/>'
       + '<path d="M10.1 5.95V16.15M13.8 7.65V18.05"/></svg>';
     b.addEventListener('click', this.onToggle);

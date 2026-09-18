@@ -12,6 +12,10 @@ import { BASE } from './base';
 const THEME_KEY = 'amazon-explorer-theme';
 const root = document.documentElement;
 let map: maplibregl.Map | undefined;
+// phones get slightly smaller map type (same breakpoint as the phone layout in style.css)
+const PHONE = window.matchMedia('(max-width: 640px)');
+const RIVER_TEXT = { desktop: 14, phone: 13 }, COUNTRY_TEXT = { desktop: 16, phone: 14 };
+const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 
 type Theme = 'light' | 'dark';
 function currentTheme(): Theme {
@@ -118,7 +122,7 @@ async function boot() {
             'text-field': ['get', 'name'],
             // Liberation Sans is the freely redistributable metric twin of Arial (see README, Fonts)
             'text-font': ['Liberation Sans Regular'],
-            'text-size': 14,
+            'text-size': textSize(RIVER_TEXT),
             'text-letter-spacing': 0.05,
             'text-max-angle': 60,
             'text-padding': 6,
@@ -141,7 +145,7 @@ async function boot() {
           layout: {
             'text-field': ['upcase', ['get', 'name']],
             'text-font': ['Liberation Sans Regular'],
-            'text-size': 16,
+            'text-size': textSize(COUNTRY_TEXT),
             'text-letter-spacing': 0.05,
             'text-padding': 6,
             'text-pitch-alignment': 'viewport',
@@ -170,6 +174,11 @@ async function boot() {
     canvasContextAttributes: { preserveDrawingBuffer: true }, // lets the snapshot button read the canvas at any time
   });
   if (import.meta.env.DEV) (window as any).__map = map; // handy for poking at the map from devtools
+  PHONE.addEventListener('change', () => {
+    if (!map?.getLayer('river-names')) return;
+    map.setLayoutProperty('river-names', 'text-size', textSize(RIVER_TEXT));
+    map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
+  });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
