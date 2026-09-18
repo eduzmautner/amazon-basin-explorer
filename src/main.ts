@@ -15,8 +15,8 @@ let map: maplibregl.Map | undefined;
 // phones get slightly smaller map type (same breakpoint as the phone layout in style.css)
 const PHONE = window.matchMedia('(max-width: 640px)');
 const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
-// one line colour for coast and country borders, told apart by weight (same on phones and desktop)
-const COAST_WIDTH = 1.5, BORDER_WIDTH = 1;
+// one line colour for coast and country borders, told apart by weight on desktop; both hairlines on phones
+const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
@@ -91,7 +91,7 @@ async function boot() {
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
-          paint: { 'line-color': coastColor(), 'line-width': COAST_WIDTH },
+          paint: { 'line-color': coastColor(), 'line-width': forPhone(COAST_WIDTH) },
         },
         // country borders (Natural Earth): the coast's colour, a step thinner
         {
@@ -182,6 +182,7 @@ async function boot() {
     map.setLayoutProperty('river-names', 'text-size', textSize(RIVER_TEXT));
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
     map.setPaintProperty('river-trails', 'line-width', forPhone(TRAILS_WIDTH));
+    map.setPaintProperty('coast', 'line-width', forPhone(COAST_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();

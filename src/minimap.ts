@@ -90,7 +90,7 @@ export class MiniMapControl implements maplibregl.IControl {
     }
     // coastline
     ctx.strokeStyle = this.css('--coast');
-    ctx.lineWidth = 1.5 * dpr; // see the coast layer in main.ts
+    ctx.lineWidth = (window.matchMedia('(max-width: 640px)').matches ? 1 : 1.5) * dpr; // see the coast layer in main.ts
     ctx.beginPath();
     for (const ring of this.coast) {
       ring.forEach(([lon, lat], i) => { const [x, y] = this.toPx(lon, lat); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
