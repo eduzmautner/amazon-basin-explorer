@@ -1,6 +1,4 @@
 import { defineConfig } from 'vite';
 
-// GitHub Pages serves the site from /<repo>/, so production builds use that base path.
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/amazon-basin-explorer/' : '/',
-}));
+// The site is served from the root of its own domain (public/CNAME), so no base path.
+export default defineConfig({ base: '/' });

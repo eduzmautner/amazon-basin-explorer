@@ -80,8 +80,9 @@ Arial glyphs are git-ignored; generate them locally if you want the real thing.
 ## Deploying
 
 Pushes to `main` build the site and publish it to GitHub Pages via `.github/workflows/pages.yml`
-(the repo's Pages source must be set to "GitHub Actions"). Production builds use the
-`/amazon-basin-explorer/` base path from `vite.config.ts`.
+(the repo's Pages source must be set to "GitHub Actions"). The site lives at https://amazonbasinexplorer.com:
+`public/CNAME` carries the domain into every build, and the domain is set under the repo's Pages settings
+(DNS: four A records to GitHub Pages' addresses and a www CNAME to eduzmautner.github.io).
 
 ## Visitor statistics
 
