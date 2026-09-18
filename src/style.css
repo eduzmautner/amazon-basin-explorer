@@ -204,8 +204,8 @@ html, body {
   }
   #controls.open { display: flex; }
   #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  /* a technical section heading rather than a title: small, tracked-out capitals; the rows match the river panel's field names */
-  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-soft); }
+  /* a small technical heading rather than a title; the rows match the river panel's field names */
+  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: normal; color: var(--fg-soft); }
   #controls-close { background: none; border: none; color: var(--muted); font-size: 32px; line-height: 1; cursor: pointer; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   /* rows: 50% larger type, thumb-sized, full width */
   #visible-control, #trails-control, #labels-control, #countries-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
