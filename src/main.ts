@@ -6,6 +6,7 @@ import { registerStaticTilesProtocol, registerMaskedProtocol, TILE_PX } from './
 import { installInertialZoom } from './inertia';
 import { MiniMapControl } from './minimap';
 import { ZoomControl } from './zoomcontrol';
+import { OptionsControl } from './optionscontrol';
 import { BASE } from './base';
 
 const THEME_KEY = 'amazon-explorer-theme';
@@ -181,6 +182,11 @@ async function boot() {
   const minimap = new MiniMapControl(mask);
   map.addControl(minimap, 'bottom-right'); // added after the scale bar, so it stacks above it
   map.addControl(new ZoomControl(), 'bottom-right'); // above the minimap, or right above the scale bar while that is hidden
+  // phones: the controls live in a bottom sheet opened from this button (CSS hides the button on wider screens)
+  const controls = document.getElementById('controls')!;
+  const openOptions = (on: boolean) => { controls.classList.toggle('open', on); if (on) document.getElementById('river-panel')!.hidden = true; };
+  map.addControl(new OptionsControl(() => openOptions(!controls.classList.contains('open'))), 'bottom-right');
+  document.getElementById('controls-close')!.addEventListener('click', () => openOptions(false));
   // start collapsed to the (i) button; MapLibre opens it once the style loads
   map.once('load', () => document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
   installInertialZoom(map);
@@ -229,6 +235,7 @@ async function boot() {
     clear: 'Clearwater river: draining the ancient shields',
   };
   const showRiver = (info: RiverInfo) => {
+    openOptions(false); // one bottom sheet at a time on phones
     rpName.textContent = info.name;
     rpWater.textContent = info.water ? WATER[info.water] : '';
     rpWater.hidden = !info.water;

@@ -12,8 +12,13 @@
     <div id="map"></div>
     <div id="ui">
       <div id="brand">The Amazon Basin<span>An Amazon river and tributaries explorer</span></div>
-      <div id="controls">
+      <div id="right">
         <button id="theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+        <div id="controls">
+        <div class="sheet-head">
+          <h2>Map options</h2>
+          <button id="controls-close" type="button" aria-label="Close">×</button>
+        </div>
         <label id="visible-control" title="Width of the strip of land shown either side of every river">
           <span>Visible Land <b id="visible-value">75%</b></span>
           <input id="visible" type="range" min="15" max="100" step="5" value="100" />
@@ -40,6 +45,7 @@
           </span>
         </div>
         <button id="snapshot" type="button" title="Save the current view as a PNG, without the interface">Take snapshot</button>
+        </div>
       </div>
     </div>
     <aside id="river-panel" hidden aria-live="polite">
