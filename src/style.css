@@ -3,7 +3,8 @@
   --fg: #1f2421;
   --fg-soft: #4a4f4b; /* subheading: solid, readable over imagery */
   --border: #737378; /* mirror of the dark-mode border: same distance from white as #8c8c87 is from black */
-  --border-soft: #959598; /* country borders: --border faded 25% toward the page background */
+  --coast: #575753; /* continent outline: mirror of the dark-mode #a8a8a4 */
+  --border-soft: #868688; /* country borders: a step fainter than the coast */
   --muted: rgba(31, 36, 33, 0.55);
   --muted-dim: rgba(31, 36, 33, 0.33); /* --muted at 60% strength: idle controls */
   --panel: rgba(251, 250, 249, 0.8);
@@ -14,7 +15,8 @@
   --fg: #e8ebe6;
   --fg-soft: #c9ccc6;
   --border: #8c8c87; /* boxes and the continent outline (#9c9c96 at 90% brightness) */
-  --border-soft: #6a6a66; /* country borders: --border faded 25% toward the page background */
+  --coast: #a8a8a4; /* continent outline */
+  --border-soft: #797975; /* country borders: a step fainter than the coast */
   --muted: rgba(232, 235, 230, 0.55);
   --muted-dim: rgba(232, 235, 230, 0.33);
   --panel: rgba(5, 6, 5, 0.7);

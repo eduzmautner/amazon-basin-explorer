@@ -22,14 +22,14 @@ function currentTheme(): Theme {
 }
 const cssVar = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
 const bgColor = () => cssVar('--bg');
-const borderColor = () => cssVar('--border'); // boxes and the continent outline share it
+const coastColor = () => cssVar('--coast'); // the continent outline
 const borderSoftColor = () => cssVar('--border-soft'); // country borders, a quarter fainter than the coast
 function applyTheme(t: Theme) {
   root.dataset.theme = t;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
   // isStyleLoaded() is false whenever tiles are still loading, so check for the layer instead
   if (map?.getLayer('bg')) map.setPaintProperty('bg', 'background-color', bgColor());
-  if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', borderColor());
+  if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', coastColor());
   if (map?.getLayer('country-borders')) map.setPaintProperty('country-borders', 'line-color', borderSoftColor());
 }
 
@@ -83,7 +83,7 @@ async function boot() {
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
-          paint: { 'line-color': borderColor(), 'line-width': 1.5 },
+          paint: { 'line-color': coastColor(), 'line-width': 1.5 },
         },
         // country borders (Natural Earth), a step fainter than the coastline
         {

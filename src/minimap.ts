@@ -89,7 +89,7 @@ export class MiniMapControl implements maplibregl.IControl {
       ctx.stroke();
     }
     // coastline
-    ctx.strokeStyle = this.css('--border');
+    ctx.strokeStyle = this.css('--coast');
     ctx.lineWidth = 1.5 * dpr; // see the coast layer in main.ts
     ctx.beginPath();
     for (const ring of this.coast) {
