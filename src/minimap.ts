@@ -16,13 +16,15 @@ const SILHOUETTE_MASK_ZOOM = 11; // ~19 km cells: ~330 x 300 over the extent, pl
 const mercY = (lat: number) => { const s = Math.sin((lat * Math.PI) / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
 const mercX = (lon: number) => (lon + 180) / 360;
 
-/** A small canvas overview: basin silhouette, coastline and the current viewport. */
+/** A small canvas overview: basin silhouette, coastline, country borders and the current viewport. */
 export class MiniMapControl implements maplibregl.IControl {
   private container!: HTMLDivElement;
   private canvas!: HTMLCanvasElement;
   private base = document.createElement('canvas'); // silhouette + coast, redrawn only when they change
   private map?: maplibregl.Map;
   private coast: number[][][] = [];
+  private borders: number[][][] = [];
+  private showBorders = true;
   private px0 = mercX(EXTENT.w); private px1 = mercX(EXTENT.e);
   private py0 = mercY(EXTENT.n); private py1 = mercY(EXTENT.s);
 
@@ -39,6 +41,7 @@ export class MiniMapControl implements maplibregl.IControl {
     this.canvas.style.height = HEIGHT + 'px';
     this.container.appendChild(this.canvas);
     fetch(BASE + 'outline.json').then((r) => r.json()).then((f) => { this.coast = f.geometry.coordinates; this.redrawBase(); this.draw(); });
+    fetch(BASE + 'countries.json').then((r) => r.json()).then((fc) => { this.borders = fc.features.find((f: any) => f.properties.kind === 'border').geometry.coordinates; this.redrawBase(); this.draw(); });
     this.redrawBase();
     map.on('move', this.draw);
     map.on('resize', this.draw);
@@ -50,6 +53,8 @@ export class MiniMapControl implements maplibregl.IControl {
 
   /** Call after the theme or the corridor scale changes. */
   refresh() { this.redrawBase(); this.draw(); }
+  /** Follows the Countries toggle. */
+  setCountries(on: boolean) { this.showBorders = on; this.refresh(); }
 
   private toPx(lon: number, lat: number): [number, number] {
     const dpr = window.devicePixelRatio || 1;
@@ -74,6 +79,14 @@ export class MiniMapControl implements maplibregl.IControl {
       const x = Math.floor((s.x0 + cx - ox) * sx), y = Math.floor((s.y0 + cy - oy) * sy);
       const x2 = Math.floor((s.x0 + cx + 1 - ox) * sx), y2 = Math.floor((s.y0 + cy + 1 - oy) * sy);
       ctx.fillRect(x, y, x2 - x, y2 - y);
+    }
+    // country borders (under the coastline, a step lighter, thinner at this size)
+    if (this.showBorders) {
+      ctx.strokeStyle = this.css('--border-soft');
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath();
+      for (const line of this.borders) line.forEach(([lon, lat], i) => { const [x, y] = this.toPx(lon, lat); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.stroke();
     }
     // coastline
     ctx.strokeStyle = this.css('--border');

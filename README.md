@@ -53,6 +53,8 @@ Tuning knobs live in `pipeline/config.mjs`.
    primary source, and ANA only labels stretches OSM leaves unnamed, matched to HydroRIVERS by
    upstream area. Rebuild the river info (5c) after the labels so the new rivers get panels.
 5. `npm run data:labels` builds `public/labels/`.
+5a. `node pipeline/build-countries.mjs` builds `public/countries.json` (country borders as the edges shared by two
+   Natural Earth countries, plus a label point each) for the "Countries" toggle.
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract
    `RiverATLAS_v10_sa_north.dbf` and `RiverATLAS_v10_sa_south.dbf` into `data/raw/riveratlas/`, then

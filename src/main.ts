@@ -23,12 +23,14 @@ function currentTheme(): Theme {
 const cssVar = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
 const bgColor = () => cssVar('--bg');
 const borderColor = () => cssVar('--border'); // boxes and the continent outline share it
+const borderSoftColor = () => cssVar('--border-soft'); // country borders, 25% lighter
 function applyTheme(t: Theme) {
   root.dataset.theme = t;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
   // isStyleLoaded() is false whenever tiles are still loading, so check for the layer instead
   if (map?.getLayer('bg')) map.setPaintProperty('bg', 'background-color', bgColor());
   if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', borderColor());
+  if (map?.getLayer('country-borders')) map.setPaintProperty('country-borders', 'line-color', borderSoftColor());
 }
 
 async function boot() {
@@ -55,6 +57,7 @@ async function boot() {
             'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors, ANA (BHO 2017)',
         },
         outline: { type: 'geojson', data: BASE + 'outline.json' },
+        countries: { type: 'geojson', data: BASE + 'countries.json' },
         labels: {
           type: 'vector',
           tiles: ['labels://{z}/{x}/{y}'],
@@ -81,6 +84,15 @@ async function boot() {
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
           paint: { 'line-color': borderColor(), 'line-width': 1.5 },
+        },
+        // country borders (Natural Earth), a step lighter than the coastline
+        {
+          id: 'country-borders',
+          type: 'line',
+          source: 'countries',
+          filter: ['==', ['get', 'kind'], 'border'],
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': borderSoftColor(), 'line-width': 1.5 },
         },
         // "River Trails": HydroRIVERS centrelines, toggled from the panel
         {
@@ -114,6 +126,27 @@ async function boot() {
           paint: {
             'text-color': '#ffffff',
             // MapLibre has no offset drop shadow for text; a soft, low-opacity halo reads as one
+            'text-halo-color': 'rgba(0, 0, 0, 0.45)',
+            'text-halo-width': 1,
+            'text-halo-blur': 1,
+          },
+        },
+        // country names: same face and halo as the river names, upper case, two sizes larger
+        {
+          id: 'country-names',
+          type: 'symbol',
+          source: 'countries',
+          filter: ['==', ['get', 'kind'], 'label'],
+          layout: {
+            'text-field': ['upcase', ['get', 'name']],
+            'text-font': ['Liberation Sans Regular'],
+            'text-size': 16,
+            'text-letter-spacing': 0.05,
+            'text-padding': 6,
+            'text-pitch-alignment': 'viewport',
+          },
+          paint: {
+            'text-color': '#ffffff',
             'text-halo-color': 'rgba(0, 0, 0, 0.45)',
             'text-halo-width': 1,
             'text-halo-blur': 1,
@@ -246,6 +279,18 @@ async function boot() {
   try { trails.checked = localStorage.getItem(TRAILS_KEY) !== '0'; } catch {} // on by default
   map.once('load', applyTrails);
   trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
+
+  // Countries toggle: borders and names together
+  const countriesToggle = document.getElementById('countries') as HTMLInputElement;
+  const COUNTRIES_KEY = 'amazon-explorer-countries';
+  const applyCountries = () => {
+    const v = countriesToggle.checked ? 'visible' : 'none';
+    for (const id of ['country-borders', 'country-names']) map!.setLayoutProperty(id, 'visibility', v);
+    minimap.setCountries(countriesToggle.checked);
+  };
+  try { countriesToggle.checked = localStorage.getItem(COUNTRIES_KEY) !== '0'; } catch {}
+  map.once('load', applyCountries);
+  countriesToggle.addEventListener('change', () => { applyCountries(); try { localStorage.setItem(COUNTRIES_KEY, countriesToggle.checked ? '1' : '0'); } catch {} });
 
   // River Labels toggle: names off = free exploring, nothing to tap; the info panel closes with them
   const labelsToggle = document.getElementById('labels') as HTMLInputElement;
