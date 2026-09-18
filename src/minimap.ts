@@ -80,7 +80,7 @@ export class MiniMapControl implements maplibregl.IControl {
       const x2 = Math.floor((s.x0 + cx + 1 - ox) * sx), y2 = Math.floor((s.y0 + cy + 1 - oy) * sy);
       ctx.fillRect(x, y, x2 - x, y2 - y);
     }
-    // country borders (under the coastline, a step lighter, thinner at this size)
+    // country borders (under the coastline, a step fainter, thinner at this size)
     if (this.showBorders) {
       ctx.strokeStyle = this.css('--border-soft');
       ctx.lineWidth = 1 * dpr;

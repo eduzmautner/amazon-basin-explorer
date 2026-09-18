@@ -23,7 +23,7 @@ function currentTheme(): Theme {
 const cssVar = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
 const bgColor = () => cssVar('--bg');
 const borderColor = () => cssVar('--border'); // boxes and the continent outline share it
-const borderSoftColor = () => cssVar('--border-soft'); // country borders, 25% lighter
+const borderSoftColor = () => cssVar('--border-soft'); // country borders, a quarter fainter than the coast
 function applyTheme(t: Theme) {
   root.dataset.theme = t;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
@@ -85,7 +85,7 @@ async function boot() {
           // than the 1px DOM borders it is meant to match
           paint: { 'line-color': borderColor(), 'line-width': 1.5 },
         },
-        // country borders (Natural Earth), a step lighter than the coastline
+        // country borders (Natural Earth), a step fainter than the coastline
         {
           id: 'country-borders',
           type: 'line',
