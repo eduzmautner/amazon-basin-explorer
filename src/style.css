@@ -106,7 +106,7 @@ html, body {
   display: grid; place-items: center; color: var(--fg-soft); /* solid, like the map-options icon */
   transition: color .12s ease;
 }
-.zoom-control svg { width: 18px; height: 18px; } /* phones: 24 px */
+.zoom-control svg { width: 20px; height: 20px; } /* 60% of the button, as on phones (24 of 40 px) */
 .zoom-control button + button { border-top: 1px solid var(--muted-dim); }
 @media (hover: hover) { .zoom-control button:hover { color: var(--fg); } }
 .zoom-control button:disabled { color: var(--muted-dim); cursor: default; }
@@ -178,15 +178,16 @@ html, body {
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 12px; letter-spacing: 0.02em; padding: 10px 12px 12px;
 }
 #river-panel[hidden] { display: none; }
-#river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-#river-panel h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; } /* tight, mid-century tracking */
-#rp-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+#river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+#river-panel .head:has(+ .water[hidden]) { margin-bottom: 12px; } /* no water type: the same gap sits under the name */
+#river-panel h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } /* tight, mid-century tracking */
+#rp-close { background: none; border: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 2px; }
 #rp-close:hover { color: var(--fg); }
-#river-panel .water { margin: 0 0 8px; color: var(--fg-soft); }
+#river-panel .water { margin: 0 0 12px; color: var(--fg-soft); font-size: 11px; }
 #river-panel table { width: 100%; border-collapse: collapse; }
-#river-panel td { padding: 4px 0; border-top: 1px solid var(--muted-dim); vertical-align: top; }
+#river-panel td { padding: 5px 0; border-top: 1px solid var(--muted-dim); vertical-align: top; }
 #river-panel td:first-child { color: var(--muted); padding-right: 12px; white-space: nowrap; }
-#river-panel td:last-child { text-align: right; color: var(--fg); font-weight: 700; }
+#river-panel td:last-child { text-align: right; color: var(--fg); font-weight: 700; font-size: 13px; }
 #river-panel .note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .maplibregl-canvas-container.maplibregl-interactive.on-label { cursor: pointer !important; }
 
@@ -205,7 +206,7 @@ html, body {
   #controls.open { display: flex; }
   #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   /* a small technical heading rather than a title; the rows match the river panel's field names */
-  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: normal; color: var(--fg-soft); }
+  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 15px; font-weight: 700; letter-spacing: normal; color: var(--fg-soft); }
   #controls-close { background: none; border: none; color: var(--muted); font-size: 32px; line-height: 1; cursor: pointer; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   /* rows: 50% larger type, thumb-sized, full width */
   #visible-control, #trails-control, #labels-control, #countries-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
