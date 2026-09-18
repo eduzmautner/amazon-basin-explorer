@@ -103,10 +103,10 @@ html, body {
 }
 .zoom-control button {
   width: 32px; height: 32px; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
-  display: grid; place-items: center; color: var(--muted);
-  font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 18px; line-height: 1;
+  display: grid; place-items: center; color: var(--fg-soft); /* solid, like the map-options icon */
   transition: color .12s ease;
 }
+.zoom-control svg { width: 18px; height: 18px; } /* phones: 24 px */
 .zoom-control button + button { border-top: 1px solid var(--muted-dim); }
 .zoom-control button:hover { color: var(--fg); }
 .zoom-control button:disabled { color: var(--muted-dim); cursor: default; }
@@ -215,7 +215,7 @@ html, body {
   #trails-control .box, #labels-control .box, #countries-control .box { width: 16px; height: 16px; font-size: 14px; }
   #snapshot { margin-top: 8px; }
   .zoom-control button, .options-control button { width: 41px; height: 41px; } /* thumb-sized: 36 px + 15% */
-  .zoom-control button { font-size: 23px; }
+  .zoom-control svg { width: 24px; height: 24px; }
   #river-panel {
     left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55vh;
     border-left: none; border-right: none; border-bottom: none;

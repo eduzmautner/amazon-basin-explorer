@@ -15,8 +15,9 @@ export class ZoomControl implements maplibregl.IControl {
     this.map = map;
     this.container = document.createElement('div');
     this.container.className = 'maplibregl-ctrl zoom-control';
-    this.plus = this.button('+', 'Zoom in', () => map.zoomIn({ duration: 400 }));
-    this.minus = this.button('−', 'Zoom out', () => map.zoomOut({ duration: 400 }));
+    // drawn, not typed: Arial's minus is a lighter glyph than its plus, so as text they never match
+    this.plus = this.button('M5 12H19M12 5V19', 'Zoom in', () => map.zoomIn({ duration: 400 }));
+    this.minus = this.button('M5 12H19', 'Zoom out', () => map.zoomOut({ duration: 400 }));
     this.container.append(this.plus, this.minus);
     map.on('zoom', this.sync);
     map.on('resize', this.sync);
@@ -26,9 +27,10 @@ export class ZoomControl implements maplibregl.IControl {
 
   onRemove() { this.map?.off('zoom', this.sync); this.map?.off('resize', this.sync); this.container.remove(); this.map = undefined; }
 
-  private button(glyph: string, label: string, act: () => void) {
+  private button(path: string, label: string, act: () => void) {
     const b = document.createElement('button');
-    b.type = 'button'; b.textContent = glyph; b.title = label; b.setAttribute('aria-label', label);
+    b.type = 'button'; b.title = label; b.setAttribute('aria-label', label);
+    b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="${path}"/></svg>`;
     b.addEventListener('click', act);
     return b;
   }

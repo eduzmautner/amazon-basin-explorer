@@ -14,8 +14,10 @@ const root = document.documentElement;
 let map: maplibregl.Map | undefined;
 // phones get slightly smaller map type (same breakpoint as the phone layout in style.css)
 const PHONE = window.matchMedia('(max-width: 640px)');
-const RIVER_TEXT = { desktop: 14, phone: 13 }, COUNTRY_TEXT = { desktop: 16, phone: 14 };
+const RIVER_TEXT = { desktop: 14, phone: 13 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
+const OUTLINE_WIDTH = { desktop: 1.5, phone: 1 }; // coast and country borders
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
+const forPhone = textSize;
 
 type Theme = 'light' | 'dark';
 function currentTheme(): Theme {
@@ -88,7 +90,7 @@ async function boot() {
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
-          paint: { 'line-color': coastColor(), 'line-width': 1.5 },
+          paint: { 'line-color': coastColor(), 'line-width': forPhone(OUTLINE_WIDTH) },
         },
         // country borders (Natural Earth), a step fainter than the coastline
         {
@@ -97,7 +99,7 @@ async function boot() {
           source: 'countries',
           filter: ['==', ['get', 'kind'], 'border'],
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': borderSoftColor(), 'line-width': 1.5 },
+          paint: { 'line-color': borderSoftColor(), 'line-width': forPhone(OUTLINE_WIDTH) },
         },
         // "River Trails": HydroRIVERS centrelines, toggled from the panel
         {
@@ -178,6 +180,8 @@ async function boot() {
     if (!map?.getLayer('river-names')) return;
     map.setLayoutProperty('river-names', 'text-size', textSize(RIVER_TEXT));
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
+    map.setPaintProperty('coast', 'line-width', forPhone(OUTLINE_WIDTH));
+    map.setPaintProperty('country-borders', 'line-width', forPhone(OUTLINE_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();
