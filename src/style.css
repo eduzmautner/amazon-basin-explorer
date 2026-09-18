@@ -79,9 +79,9 @@ html, body {
 #visible-control b { color: var(--fg); font-weight: 700; margin-left: 4px; }
 /* the range input: a 2px track (half the browser default) with a small round thumb */
 #visible { -webkit-appearance: none; appearance: none; width: 150px; height: 12px; margin: 0; background: transparent; cursor: pointer; }
-#visible::-webkit-slider-runnable-track { height: 2px; background: var(--muted); border-radius: 1px; }
-#visible::-moz-range-track { height: 2px; background: var(--muted); border-radius: 1px; }
-#visible::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 10px; margin-top: -4px; border-radius: 50%; background: var(--fg); border: none; }
+#visible::-webkit-slider-runnable-track { height: 1px; background: var(--muted); }
+#visible::-moz-range-track { height: 1px; background: var(--muted); }
+#visible::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 10px; margin-top: -4.5px; border-radius: 50%; background: var(--fg); border: none; }
 #visible::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--fg); border: none; }
 #visible:focus-visible { outline: 1px solid var(--fg); outline-offset: 2px; }
 #loading {
@@ -203,15 +203,15 @@ html, body {
     background: var(--bg); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   }
   #controls.open { display: flex; }
-  #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; } /* as under the river name */
-  /* the sheet heading matches the river name, its rows match the field names */
-  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); }
+  #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  /* a technical section heading rather than a title: small, tracked-out capitals; the rows match the river panel's field names */
+  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-soft); }
   #controls-close { background: none; border: none; color: var(--muted); font-size: 32px; line-height: 1; cursor: pointer; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   /* rows: 50% larger type, thumb-sized, full width */
   #visible-control, #trails-control, #labels-control, #countries-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
   #visible-control { gap: 12px; }
   #visible { width: 100%; height: 24px; }
-  #visible::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -7px; }
+  #visible::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -7.5px; }
   #visible::-moz-range-thumb { width: 16px; height: 16px; }
   #trails-control .box, #labels-control .box, #countries-control .box { width: 16px; height: 16px; font-size: 14px; }
   #snapshot { margin-top: 8px; }
