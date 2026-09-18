@@ -15,7 +15,8 @@ let map: maplibregl.Map | undefined;
 // phones get slightly smaller map type (same breakpoint as the phone layout in style.css)
 const PHONE = window.matchMedia('(max-width: 640px)');
 const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
-const OUTLINE_WIDTH = { desktop: 1.5, phone: 1 }; // coast and country borders
+// one line colour for coast and country borders, told apart by weight (same on phones and desktop)
+const COAST_WIDTH = 1.5, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
@@ -31,14 +32,13 @@ function currentTheme(): Theme {
 const cssVar = (name: string) => getComputedStyle(root).getPropertyValue(name).trim();
 const bgColor = () => cssVar('--bg');
 const coastColor = () => cssVar('--coast'); // the continent outline
-const borderSoftColor = () => cssVar('--border-soft'); // country borders, a quarter fainter than the coast
 function applyTheme(t: Theme) {
   root.dataset.theme = t;
   try { localStorage.setItem(THEME_KEY, t); } catch {}
   // isStyleLoaded() is false whenever tiles are still loading, so check for the layer instead
   if (map?.getLayer('bg')) map.setPaintProperty('bg', 'background-color', bgColor());
   if (map?.getLayer('coast')) map.setPaintProperty('coast', 'line-color', coastColor());
-  if (map?.getLayer('country-borders')) map.setPaintProperty('country-borders', 'line-color', borderSoftColor());
+  if (map?.getLayer('country-borders')) map.setPaintProperty('country-borders', 'line-color', coastColor());
 }
 
 async function boot() {
@@ -91,16 +91,16 @@ async function boot() {
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           // 1.5px: an anti-aliased 1px line straddles two pixels at half strength and reads lighter
           // than the 1px DOM borders it is meant to match
-          paint: { 'line-color': coastColor(), 'line-width': forPhone(OUTLINE_WIDTH) },
+          paint: { 'line-color': coastColor(), 'line-width': COAST_WIDTH },
         },
-        // country borders (Natural Earth), a step fainter than the coastline
+        // country borders (Natural Earth): the coast's colour, a step thinner
         {
           id: 'country-borders',
           type: 'line',
           source: 'countries',
           filter: ['==', ['get', 'kind'], 'border'],
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': borderSoftColor(), 'line-width': forPhone(OUTLINE_WIDTH) },
+          paint: { 'line-color': coastColor(), 'line-width': BORDER_WIDTH },
         },
         // "River Trails": HydroRIVERS centrelines, toggled from the panel
         {
@@ -181,8 +181,6 @@ async function boot() {
     if (!map?.getLayer('river-names')) return;
     map.setLayoutProperty('river-names', 'text-size', textSize(RIVER_TEXT));
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
-    map.setPaintProperty('coast', 'line-width', forPhone(OUTLINE_WIDTH));
-    map.setPaintProperty('country-borders', 'line-width', forPhone(OUTLINE_WIDTH));
     map.setPaintProperty('river-trails', 'line-width', forPhone(TRAILS_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
