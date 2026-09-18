@@ -14,7 +14,7 @@ const root = document.documentElement;
 let map: maplibregl.Map | undefined;
 // phones get slightly smaller map type (same breakpoint as the phone layout in style.css)
 const PHONE = window.matchMedia('(max-width: 640px)');
-const RIVER_TEXT = { desktop: 14, phone: 13 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
+const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
 const OUTLINE_WIDTH = { desktop: 1.5, phone: 1 }; // coast and country borders
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
