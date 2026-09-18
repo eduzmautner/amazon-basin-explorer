@@ -16,6 +16,7 @@ let map: maplibregl.Map | undefined;
 const PHONE = window.matchMedia('(max-width: 640px)');
 const RIVER_TEXT = { desktop: 14, phone: 13 }, COUNTRY_TEXT = { desktop: 16, phone: 12 };
 const OUTLINE_WIDTH = { desktop: 1.5, phone: 1 }; // coast and country borders
+const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
 
@@ -111,7 +112,7 @@ async function boot() {
           // and flat ends there stack less than round ones
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
           // opacity by Strahler order: 5% per step from 15% at order 3 (and below) to 50% at the order 10 Amazon
-          paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] },
+          paint: { 'line-color': '#ffffff', 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] },
         },
         {
           id: 'river-names',
@@ -182,6 +183,7 @@ async function boot() {
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
     map.setPaintProperty('coast', 'line-width', forPhone(OUTLINE_WIDTH));
     map.setPaintProperty('country-borders', 'line-width', forPhone(OUTLINE_WIDTH));
+    map.setPaintProperty('river-trails', 'line-width', forPhone(TRAILS_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();

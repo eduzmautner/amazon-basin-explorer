@@ -179,7 +179,7 @@ html, body {
 }
 #river-panel[hidden] { display: none; }
 #river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-#river-panel h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+#river-panel h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; } /* tight, mid-century tracking */
 #rp-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 #rp-close:hover { color: var(--fg); }
 #river-panel .water { margin: 0 0 8px; color: var(--fg-soft); }
@@ -204,10 +204,11 @@ html, body {
   }
   #controls.open { display: flex; }
   #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.02em; color: var(--fg); }
+  /* the sheet heading matches the river name, its rows match the field names */
+  #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); }
   #controls-close { background: none; border: none; color: var(--muted); font-size: 30px; line-height: 1; cursor: pointer; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   /* rows: 50% larger type, thumb-sized, full width */
-  #visible-control, #trails-control, #labels-control, #countries-control, #units-control, #snapshot { font-size: 16.5px; padding: 12px 14px; }
+  #visible-control, #trails-control, #labels-control, #countries-control, #units-control, #snapshot { font-size: 15.5px; padding: 12px 14px; }
   #visible-control { gap: 12px; }
   #visible { width: 100%; height: 24px; }
   #visible::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -7px; }
@@ -224,7 +225,7 @@ html, body {
   /* 50% larger type than on desktop; the sheet scrolls rather than squeezing rows */
   #river-panel { font-size: 16.5px; padding: 14px 16px 16px; }
   #river-panel h2 { font-size: 26px; }
-  #river-panel .water { margin-bottom: 16px; }
+  #river-panel .water { margin-bottom: 16px; font-size: 14.5px; }
   #river-panel .head:has(+ .water[hidden]) { margin-bottom: 16px; } /* no water type: the same gap sits under the name */
   #river-panel td:first-child { font-size: 15.5px; }
   #river-panel td:last-child { font-size: 17.5px; }
