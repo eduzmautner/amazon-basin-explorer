@@ -155,7 +155,7 @@ html, body {
 
 /* River Trails folds its two sub-items away behind a caret after the label text */
 #trails-control .caret {
-  width: 14px; height: 14px; padding: 0; margin: 0 0 0 2px; border: none; background: none; cursor: pointer; color: var(--muted);
+  width: 14px; height: 14px; padding: 0; margin: 0 0 0 -2px; border: none; background: none; cursor: pointer; color: var(--muted);
   display: grid; place-items: center;
 }
 #trails-control .caret::before { content: ""; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: translateY(-1px) rotate(-45deg); transition: transform .12s ease; }
@@ -166,18 +166,18 @@ html, body {
 #trails-control.expanded ~ .sub { display: flex; }
 /* sub-items: indented; a partial rule from the indent instead of a full divider, so they read as one block */
 #trails-control.expanded { border-bottom: none; }
-#controls .sub { padding-left: 28px; border-top: none; margin-top: 0; position: relative; }
+#controls .sub { padding-left: 28px; border-top: none; border-bottom: none; margin-top: 0; position: relative; } /* only the partial rules inside the block; River Labels' own top border closes it */
 #controls .sub::before { content: ""; position: absolute; top: 0; left: 28px; right: 12px; border-top: 1px solid var(--muted-dim); }
 #controls .sub.off { color: var(--muted-dim); pointer-events: none; }
 #controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
 #controls .sub.off .legend { display: none; }
 
-/* Remoteness: the check row, then a legend strip (magenta = in a city, fading to nothing where no town is in reach) */
+/* Remoteness: the check row, then a legend strip (red-orange = in a city, fading to nothing where no town is in reach) */
 #remote-control { flex-direction: column; align-items: stretch; gap: 6px; }
 #remote-control .row { display: flex; align-items: center; gap: 8px; }
 #remote-control .legend { display: none; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.04em; color: var(--muted); }
 #remote-control.on .legend { display: flex; }
-#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 51, 204, 0), #ff33cc); }
+#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 58, 26, 0), #ff3a1a); }
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {
