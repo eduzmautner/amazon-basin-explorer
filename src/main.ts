@@ -19,10 +19,10 @@ const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, pho
 const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 // River Trails: white, opacity by Strahler order (5% per step from 15% at order 3 and below to 50% at the
-// order 10 Amazon). The Remoteness tint is a second line over them: reddish orange at full opacity in a big city
+// order 10 Amazon). The Remoteness tint is a second line over them: red at full opacity in a big city
 // ('rem' level 99), fading to fully transparent where no town is in reach (level 0).
 const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any;
-const REMOTE_COLOR = '#ff3a1a'; // a reddish orange at full brightness
+const REMOTE_COLOR = '#ff002b'; // hsl(350, 100%, 50%): a full-brightness red, a touch toward magenta
 const REMOTE_OPACITY = ['/', ['coalesce', ['get', 'rem'], 0], 99] as any;
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
@@ -337,7 +337,7 @@ async function boot() {
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
 
   // River Trails toggle, with two sub-items that only take effect while the trails are on:
-  // Remoteness (the red-orange tint) and Settlements (town dots and names)
+  // Remoteness (the red tint) and Settlements (town dots and names)
   const trails = document.getElementById('trails') as HTMLInputElement;
   const remoteToggle = document.getElementById('remote') as HTMLInputElement;
   const settlementsToggle = document.getElementById('settlements') as HTMLInputElement;

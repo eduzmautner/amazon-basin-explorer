@@ -176,12 +176,12 @@ html, body {
 #controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
 #controls .sub.off .legend { display: none; }
 
-/* Remoteness: the check row, then a legend strip (red-orange = in a city, fading to nothing where no town is in reach) */
+/* Remoteness: the check row, then a legend strip (red = in a city, fading to nothing where no town is in reach) */
 #remote-control { flex-direction: column; align-items: stretch; gap: 6px; }
 #remote-control .row { display: flex; align-items: center; gap: 8px; }
 #remote-control .legend { display: none; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.04em; color: var(--muted); }
 #remote-control.on .legend { display: flex; }
-#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 58, 26, 0), #ff3a1a); }
+#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 0, 43, 0), #ff002b); }
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {
