@@ -166,8 +166,12 @@ html, body {
 #trails-control.expanded ~ .sub { display: flex; }
 /* sub-items: indented; a partial rule from the indent instead of a full divider, so they read as one block */
 #trails-control.expanded { border-bottom: none; }
-#controls .sub { padding-left: 28px; border-top: none; border-bottom: none; margin-top: 0; position: relative; } /* only the partial rules inside the block; River Labels' own top border closes it */
-#controls .sub::before { content: ""; position: absolute; top: 0; left: 28px; right: 12px; border-top: 1px solid var(--muted-dim); }
+/* the partial rule is a background stripe rather than a positioned pseudo-element, which would paint over the
+   next box's top border (River Labels', the one that closes the block) and hide it */
+#controls .sub {
+  padding-left: 28px; border-top: none; border-bottom: none; margin-top: 0;
+  background: linear-gradient(var(--muted-dim), var(--muted-dim)) 28px 0 / calc(100% - 40px) 1px no-repeat, var(--bg);
+}
 #controls .sub.off { color: var(--muted-dim); pointer-events: none; }
 #controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
 #controls .sub.off .legend { display: none; }
@@ -235,7 +239,7 @@ html, body {
   /* rows: 50% larger type, thumb-sized, full width */
   #visible-control, #trails-control, #labels-control, #countries-control, #remote-control, #settlements-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
   #controls .sub { padding-left: 36px; }
-  #controls .sub::before { left: 36px; right: 14px; }
+  #controls .sub { background-position: 36px 0; background-size: calc(100% - 50px) 1px; }
   #trails-control .caret { width: 24px; height: 24px; }
   #trails-control .caret::before { width: 7px; height: 7px; }
   #remote-control .legend { font-size: 12px; }
