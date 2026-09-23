@@ -55,6 +55,10 @@ Tuning knobs live in `pipeline/config.mjs`.
 5. `npm run data:labels` builds `public/labels/`.
 5a. `node pipeline/build-countries.mjs` builds `public/countries.json` (country borders as the edges shared by two
    Natural Earth countries, plus a label point each) for the "Countries" toggle.
+5a2. `node pipeline/build-settlements.mjs` builds `public/settlements.json` (towns of 2,000+ people near the basin's
+   rivers) from GeoNames `cities500.txt` (download https://download.geonames.org/export/dump/cities500.zip into
+   `data/raw/geonames/`). Run it before 5b: the trail tiles carry a remoteness level per stretch, the strongest
+   town glow reaching it (strength from population on a log scale, reach growing with the cube root of population).
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract
    `RiverATLAS_v10_sa_north.dbf` and `RiverATLAS_v10_sa_south.dbf` into `data/raw/riveratlas/`, then
@@ -96,5 +100,5 @@ Fork this project? Remove that script tag or point it at your own GoatCounter co
 Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community. River network:
 HydroRIVERS v1.0 (Lehner & Grill 2013, CC BY 4.0). River attributes: HydroATLAS / RiverATLAS v1.0 (Linke
 et al. 2019, CC BY 4.0). Names © OpenStreetMap contributors (ODbL) and Agência Nacional de Águas e Saneamento Básico (ANA),
-Base Hidrográfica Ottocodificada 2017.
+Base Hidrográfica Ottocodificada 2017. Towns from GeoNames (CC BY 4.0).
 Coastline: Natural Earth (public domain). Open Sans glyphs via fonts.openmaptiles.org.

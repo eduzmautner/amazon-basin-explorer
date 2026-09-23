@@ -18,6 +18,11 @@ const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, pho
 // one line colour for coast and country borders, told apart by weight on desktop; both hairlines on phones
 const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
+// River Trails paint. Plain: white, opacity by Strahler order (5% per step from 15% at order 3 and below to
+// 50% at the order 10 Amazon). Remoteness: colour by the 'rem' level (0 = no town in reach .. 99 = in a
+// big city) from white to a reddish orange, at one opacity so the colour carries the meaning.
+const TRAIL_PLAIN = { color: '#ffffff', opacity: ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any };
+const TRAIL_REMOTE = { color: ['interpolate', ['linear'], ['coalesce', ['get', 'rem'], 0], 0, '#ffffff', 99, '#ff4a1c'] as any, opacity: 0.6 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
 
@@ -62,10 +67,11 @@ async function boot() {
           minzoom: 3,
           maxzoom: 17,
           attribution:
-            'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors, ANA (BHO 2017)',
+            'Imagery © Esri, Maxar, Earthstar Geographics · Rivers: HydroRIVERS · Names © OpenStreetMap contributors, ANA (BHO 2017) · Towns: GeoNames',
         },
         outline: { type: 'geojson', data: BASE + 'outline.json' },
         countries: { type: 'geojson', data: BASE + 'countries.json' },
+        settlements: { type: 'geojson', data: BASE + 'settlements.json' },
         labels: {
           type: 'vector',
           tiles: ['labels://{z}/{x}/{y}'],
@@ -111,8 +117,7 @@ async function boot() {
           // butt caps: rivers are pre-chained into continuous lines, so ends only meet at confluences,
           // and flat ends there stack less than round ones
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
-          // opacity by Strahler order: 5% per step from 15% at order 3 (and below) to 50% at the order 10 Amazon
-          paint: { 'line-color': '#ffffff', 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] },
+          paint: { 'line-color': TRAIL_PLAIN.color, 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': TRAIL_PLAIN.opacity },
         },
         {
           id: 'river-names',
@@ -138,6 +143,34 @@ async function boot() {
             'text-halo-width': 1,
             'text-halo-blur': 1,
           },
+        },
+        // towns and cities (GeoNames), shown with the remoteness colouring: a white dot with a black rim,
+        // named at every zoom for cities and from z7 for towns
+        {
+          id: 'settlement-dots',
+          type: 'circle',
+          source: 'settlements',
+          layout: { visibility: 'none' },
+          paint: { 'circle-radius': ['case', ['==', ['get', 'kind'], 'city'], 4, 3], 'circle-color': '#ffffff', 'circle-stroke-color': '#000000', 'circle-stroke-width': 1 },
+        },
+        {
+          id: 'settlement-names',
+          type: 'symbol',
+          source: 'settlements',
+          minzoom: 5,
+          filter: ['any', ['==', ['get', 'kind'], 'city'], ['>=', ['zoom'], 7]],
+          layout: {
+            visibility: 'none',
+            'text-field': ['get', 'name'],
+            'text-font': ['Liberation Sans Regular'],
+            'text-size': ['case', ['==', ['get', 'kind'], 'city'], 13, 11],
+            'text-letter-spacing': 0.05,
+            'text-anchor': 'left',
+            'text-offset': [0.7, 0],
+            'text-padding': 4,
+            'text-optional': true,
+          },
+          paint: { 'text-color': '#ffffff', 'text-halo-color': 'rgba(0, 0, 0, 0.45)', 'text-halo-width': 1, 'text-halo-blur': 1 },
         },
         // country names: same face and halo as the river names, upper case, two sizes larger
         {
@@ -300,6 +333,21 @@ async function boot() {
   try { trails.checked = localStorage.getItem(TRAILS_KEY) !== '0'; } catch {} // on by default
   map.once('load', applyTrails);
   trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
+
+  // Remoteness toggle: recolours the trails and shows the towns behind the colouring
+  const remoteToggle = document.getElementById('remote') as HTMLInputElement;
+  const remoteBox = document.getElementById('remote-control')!;
+  const REMOTE_KEY = 'amazon-explorer-remoteness';
+  const applyRemote = () => {
+    const on = remoteToggle.checked, p = on ? TRAIL_REMOTE : TRAIL_PLAIN;
+    map!.setPaintProperty('river-trails', 'line-color', p.color);
+    map!.setPaintProperty('river-trails', 'line-opacity', p.opacity);
+    for (const id of ['settlement-dots', 'settlement-names']) map!.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    remoteBox.classList.toggle('on', on);
+  };
+  try { remoteToggle.checked = localStorage.getItem(REMOTE_KEY) === '1'; } catch {} // off by default
+  map.once('load', applyRemote);
+  remoteToggle.addEventListener('change', () => { applyRemote(); try { localStorage.setItem(REMOTE_KEY, remoteToggle.checked ? '1' : '0'); } catch {} });
 
   // Countries toggle: borders and names together
   const countriesToggle = document.getElementById('countries') as HTMLInputElement;

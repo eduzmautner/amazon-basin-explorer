@@ -12,6 +12,31 @@ const IN = 'data/work/amazon.ndjson';
 const OUT = 'public/rivers';
 const MIN_Z = 3, MAX_Z = 10;
 const THRESHOLD = { 3: 40000, 4: 40000, 5: 15000, 6: 5000, 7: 1500, 8: 500, 9: 100, 10: 0 }; // km² upstream
+const SETTLEMENTS = 'data/work/settlements.json'; // from build-settlements.mjs (optional)
+
+// Remoteness: every town casts a glow that fades with distance; a stretch of river takes the strongest
+// glow reaching it, scored 0 (no town in reach) .. 99 (in a big city) and drawn white .. orange.
+//   strength S(pop): 0.3 for a 2,000 town rising on a log scale to 1 at 2.2 million (Manaus)
+//   reach R(pop): 10 km for a 2,000 town, growing with the cube root of population (~100 km for Manaus)
+//   glow = S * exp(-d / R), d = straight-line distance from the reach's midpoint
+const REM_LEVELS = 100, REM_POP0 = 2000, REM_POP1 = 2.2e6, REM_S0 = 0.3, REM_R0_KM = 10, REM_FLOOR = 0.005;
+const KM_PER_DEG = 111.32;
+const settlements = fs.existsSync(SETTLEMENTS) ? JSON.parse(fs.readFileSync(SETTLEMENTS, 'utf8')).map((p) => {
+  const S = REM_S0 + (1 - REM_S0) * Math.min(1, Math.max(0, Math.log10(p.pop / REM_POP0) / Math.log10(REM_POP1 / REM_POP0)));
+  const R = REM_R0_KM * Math.cbrt(p.pop / REM_POP0);
+  const reachKm = R * Math.log(S / REM_FLOOR); // beyond this the glow is below the floor: skip the distance
+  return { lon: p.lon, lat: p.lat, cosl: Math.cos((p.lat * Math.PI) / 180), S, R, reachDeg: reachKm / KM_PER_DEG };
+}) : [];
+function remoteness(lon, lat) {
+  let best = 0;
+  for (const s of settlements) {
+    const dy = lat - s.lat; if (dy > s.reachDeg || dy < -s.reachDeg) continue;
+    const dx = (lon - s.lon) * s.cosl; if (dx > s.reachDeg || dx < -s.reachDeg) continue;
+    const g = s.S * Math.exp(-(Math.hypot(dx, dy) * KM_PER_DEG) / s.R);
+    if (g > best) best = g;
+  }
+  return Math.min(REM_LEVELS - 1, Math.round(best * (REM_LEVELS - 1)));
+}
 
 const t0 = Date.now();
 const log = (...a) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...a);
@@ -22,10 +47,16 @@ const reaches = new Map(); // id -> { down, up, ord, c }
   for await (const line of rl) {
     if (!line) continue;
     const r = JSON.parse(line);
-    reaches.set(r.id, { down: r.down, up: r.up, ord: r.stra, c: r.c });
+    const mid = r.c[Math.floor(r.c.length / 2)];
+    reaches.set(r.id, { down: r.down, up: r.up, ord: r.stra, c: r.c, rem: remoteness(mid[0], mid[1]) });
   }
 }
-log('reaches:', reaches.size);
+log('reaches:', reaches.size, 'settlements for remoteness:', settlements.length);
+{
+  const hist = new Array(10).fill(0);
+  for (const r of reaches.values()) hist[Math.min(9, Math.floor(r.rem / 10))]++;
+  log('remoteness levels by decile (0-9, 10-19, ...):', hist.join(' '));
+}
 
 // 2. chain reaches into continuous rivers. At each confluence the largest upstream reach continues
 //    the line; the others end there. So a river is one feature from its head to where it joins a
@@ -44,13 +75,14 @@ const features = [];
 for (const [id] of reaches) {
   if (hasUpstream.has(id)) continue; // not a headwater: some chain passes through it
   const coords = [];
-  const runs = []; // { ord, start }: index in coords of the run's first vertex
+  const runs = []; // { ord, rem, start }: index in coords of the run's first vertex
   let cur = id, maxUp = 0;
   for (;;) {
     const r = reaches.get(cur);
     maxUp = Math.max(maxUp, r.up);
     const start = coords.length ? coords.length - 1 : 0;
-    if (!runs.length || runs[runs.length - 1].ord !== r.ord) runs.push({ ord: r.ord, start });
+    const last = runs[runs.length - 1];
+    if (!last || last.ord !== r.ord || last.rem !== r.rem) runs.push({ ord: r.ord, rem: r.rem, start });
     for (let i = coords.length ? 1 : 0; i < r.c.length; i++) coords.push(r.c[i]);
     const next = r.down;
     if (!reaches.has(next) || mainPred.get(next) !== cur) break;
@@ -65,11 +97,11 @@ for (const [id] of reaches) {
     const a = runs[k].start * f, b = k + 1 < runs.length ? runs[k + 1].start * f : sm.length - 1;
     const seg = sm.slice(a, b + 1);
     if (seg.length < 2) continue;
-    features.push({ type: 'Feature', properties: { up, ord: runs[k].ord }, geometry: { type: 'LineString', coordinates: seg } });
+    features.push({ type: 'Feature', properties: { up, ord: runs[k].ord, rem: runs[k].rem }, geometry: { type: 'LineString', coordinates: seg } });
   }
 }
 void isMainPredOfSomething;
-log('river runs after chaining and cutting by order:', features.length);
+log('river runs after chaining and cutting by order and remoteness:', features.length);
 
 // Chaikin corner cutting: the source follows a 460 m grid in 45° steps; two passes round that into
 // curves without moving any point more than about half a cell.
