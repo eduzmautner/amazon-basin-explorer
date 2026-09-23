@@ -19,10 +19,10 @@ const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, pho
 const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 // River Trails: white, opacity by Strahler order (5% per step from 15% at order 3 and below to 50% at the
-// order 10 Amazon). The Remoteness tint is a second line over them: orange at full opacity in a big city
+// order 10 Amazon). The Remoteness tint is a second line over them: magenta at full opacity in a big city
 // ('rem' level 99), fading to fully transparent where no town is in reach (level 0).
 const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any;
-const REMOTE_COLOR = '#ff4a1c';
+const REMOTE_COLOR = '#ff33cc';
 const REMOTE_OPACITY = ['/', ['coalesce', ['get', 'rem'], 0], 99] as any;
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
@@ -337,7 +337,7 @@ async function boot() {
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
 
   // River Trails toggle, with two sub-items that only take effect while the trails are on:
-  // Remoteness (the orange tint) and Settlements (town dots and names)
+  // Remoteness (the magenta tint) and Settlements (town dots and names)
   const trails = document.getElementById('trails') as HTMLInputElement;
   const remoteToggle = document.getElementById('remote') as HTMLInputElement;
   const settlementsToggle = document.getElementById('settlements') as HTMLInputElement;
@@ -359,6 +359,12 @@ async function boot() {
   map.once('load', applyTrails);
   const remember = (key: string, box: HTMLInputElement) => { try { localStorage.setItem(key, box.checked ? '1' : '0'); } catch {} };
   trails.addEventListener('change', () => { applyTrails(); remember(TRAILS_KEY, trails); });
+  // the caret folds the sub-items; it sits inside the label, so keep its click from toggling the check box
+  const trailsBox = document.getElementById('trails-control')!, caret = document.getElementById('trails-caret')!;
+  const TRAILS_OPEN_KEY = 'amazon-explorer-trails-open';
+  const setExpanded = (open: boolean) => { trailsBox.classList.toggle('expanded', open); caret.setAttribute('aria-expanded', String(open)); caret.setAttribute('aria-label', (open ? 'Hide' : 'Show') + ' River Trails options'); };
+  try { setExpanded(localStorage.getItem(TRAILS_OPEN_KEY) === '1'); } catch { setExpanded(false); }
+  caret.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); const open = !trailsBox.classList.contains('expanded'); setExpanded(open); try { localStorage.setItem(TRAILS_OPEN_KEY, open ? '1' : '0'); } catch {} });
   remoteToggle.addEventListener('change', () => { applyTrails(); remember(REMOTE_KEY, remoteToggle); });
   settlementsToggle.addEventListener('change', () => { applyTrails(); remember(SETTLEMENTS_KEY, settlementsToggle); });
 

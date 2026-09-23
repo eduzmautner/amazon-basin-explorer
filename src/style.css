@@ -153,18 +153,31 @@ html, body {
 #trails-control:hover, #labels-control:hover, #countries-control:hover, #remote-control:hover, #settlements-control:hover { color: var(--fg); }
 #trails-control input:focus-visible + .box, #labels-control input:focus-visible + .box, #countries-control input:focus-visible + .box, #remote-control input:focus-visible + .box, #settlements-control input:focus-visible + .box { outline: 1px solid var(--fg); outline-offset: 2px; }
 
-/* sub-items of River Trails: indented, and greyed out while the trails are off */
-#controls .sub { padding-left: 28px; }
+/* River Trails folds its two sub-items away behind a caret after the label text */
+#trails-control .caret {
+  width: 14px; height: 14px; padding: 0; margin: 0 0 0 2px; border: none; background: none; cursor: pointer; color: var(--muted);
+  display: grid; place-items: center;
+}
+#trails-control .caret::before { content: ""; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: translateY(-1px) rotate(-45deg); transition: transform .12s ease; }
+#trails-control.expanded .caret::before { transform: translateY(-2px) rotate(45deg); }
+#trails-control .caret:hover { color: var(--fg); }
+#trails-control .caret:focus-visible { outline: 1px solid var(--fg); outline-offset: 1px; }
+#controls .sub { display: none; }
+#trails-control.expanded ~ .sub { display: flex; }
+/* sub-items: indented; a partial rule from the indent instead of a full divider, so they read as one block */
+#trails-control.expanded { border-bottom: none; }
+#controls .sub { padding-left: 28px; border-top: none; margin-top: 0; position: relative; }
+#controls .sub::before { content: ""; position: absolute; top: 0; left: 28px; right: 12px; border-top: 1px solid var(--muted-dim); }
 #controls .sub.off { color: var(--muted-dim); pointer-events: none; }
 #controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
 #controls .sub.off .legend { display: none; }
 
-/* Remoteness: the check row, then a legend strip (orange = in a city, fading to nothing where no town is in reach) */
+/* Remoteness: the check row, then a legend strip (magenta = in a city, fading to nothing where no town is in reach) */
 #remote-control { flex-direction: column; align-items: stretch; gap: 6px; }
 #remote-control .row { display: flex; align-items: center; gap: 8px; }
 #remote-control .legend { display: none; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.04em; color: var(--muted); }
 #remote-control.on .legend { display: flex; }
-#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 74, 28, 0), #ff4a1c); }
+#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 51, 204, 0), #ff33cc); }
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {
@@ -222,6 +235,9 @@ html, body {
   /* rows: 50% larger type, thumb-sized, full width */
   #visible-control, #trails-control, #labels-control, #countries-control, #remote-control, #settlements-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
   #controls .sub { padding-left: 36px; }
+  #controls .sub::before { left: 36px; right: 14px; }
+  #trails-control .caret { width: 24px; height: 24px; }
+  #trails-control .caret::before { width: 7px; height: 7px; }
   #remote-control .legend { font-size: 12px; }
   #remote-control .legend i { height: 6px; }
   #visible-control { gap: 12px; }
