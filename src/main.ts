@@ -18,11 +18,12 @@ const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, pho
 // one line colour for coast and country borders, told apart by weight on desktop; both hairlines on phones
 const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
-// River Trails paint. Plain: white, opacity by Strahler order (5% per step from 15% at order 3 and below to
-// 50% at the order 10 Amazon). Remoteness: colour by the 'rem' level (0 = no town in reach .. 99 = in a
-// big city) from white to a reddish orange, at one opacity so the colour carries the meaning.
-const TRAIL_PLAIN = { color: '#ffffff', opacity: ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any };
-const TRAIL_REMOTE = { color: ['interpolate', ['linear'], ['coalesce', ['get', 'rem'], 0], 0, '#ffffff', 99, '#ff4a1c'] as any, opacity: 0.6 };
+// River Trails: white, opacity by Strahler order (5% per step from 15% at order 3 and below to 50% at the
+// order 10 Amazon). The Remoteness tint is a second line over them: orange at full opacity in a big city
+// ('rem' level 99), fading to fully transparent where no town is in reach (level 0).
+const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any;
+const REMOTE_COLOR = '#ff4a1c';
+const REMOTE_OPACITY = ['/', ['coalesce', ['get', 'rem'], 0], 99] as any;
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
 
@@ -117,7 +118,15 @@ async function boot() {
           // butt caps: rivers are pre-chained into continuous lines, so ends only meet at confluences,
           // and flat ends there stack less than round ones
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
-          paint: { 'line-color': TRAIL_PLAIN.color, 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': TRAIL_PLAIN.opacity },
+          paint: { 'line-color': '#ffffff', 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': TRAIL_OPACITY },
+        },
+        {
+          id: 'river-remote',
+          type: 'line',
+          source: 'rivers',
+          'source-layer': 'rivers',
+          layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
+          paint: { 'line-color': REMOTE_COLOR, 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': REMOTE_OPACITY },
         },
         {
           id: 'river-names',
@@ -144,7 +153,7 @@ async function boot() {
             'text-halo-blur': 1,
           },
         },
-        // towns and cities (GeoNames), shown with the remoteness colouring: a white dot with a black rim,
+        // towns and cities (GeoNames), the Settlements sub-item of River Trails: a white dot with a black rim,
         // named at every zoom for cities and from z7 for towns
         {
           id: 'settlement-dots',
@@ -215,6 +224,7 @@ async function boot() {
     map.setLayoutProperty('river-names', 'text-size', textSize(RIVER_TEXT));
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
     map.setPaintProperty('river-trails', 'line-width', forPhone(TRAILS_WIDTH));
+    map.setPaintProperty('river-remote', 'line-width', forPhone(TRAILS_WIDTH));
     map.setPaintProperty('coast', 'line-width', forPhone(COAST_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
@@ -326,28 +336,31 @@ async function boot() {
   map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
 
-  // River Trails toggle
+  // River Trails toggle, with two sub-items that only take effect while the trails are on:
+  // Remoteness (the orange tint) and Settlements (town dots and names)
   const trails = document.getElementById('trails') as HTMLInputElement;
-  const TRAILS_KEY = 'amazon-explorer-trails';
-  const applyTrails = () => map!.setLayoutProperty('river-trails', 'visibility', trails.checked ? 'visible' : 'none');
-  try { trails.checked = localStorage.getItem(TRAILS_KEY) !== '0'; } catch {} // on by default
-  map.once('load', applyTrails);
-  trails.addEventListener('change', () => { applyTrails(); try { localStorage.setItem(TRAILS_KEY, trails.checked ? '1' : '0'); } catch {} });
-
-  // Remoteness toggle: recolours the trails and shows the towns behind the colouring
   const remoteToggle = document.getElementById('remote') as HTMLInputElement;
-  const remoteBox = document.getElementById('remote-control')!;
-  const REMOTE_KEY = 'amazon-explorer-remoteness';
-  const applyRemote = () => {
-    const on = remoteToggle.checked, p = on ? TRAIL_REMOTE : TRAIL_PLAIN;
-    map!.setPaintProperty('river-trails', 'line-color', p.color);
-    map!.setPaintProperty('river-trails', 'line-opacity', p.opacity);
-    for (const id of ['settlement-dots', 'settlement-names']) map!.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-    remoteBox.classList.toggle('on', on);
+  const settlementsToggle = document.getElementById('settlements') as HTMLInputElement;
+  const remoteBox = document.getElementById('remote-control')!, settlementsBox = document.getElementById('settlements-control')!;
+  const TRAILS_KEY = 'amazon-explorer-trails', REMOTE_KEY = 'amazon-explorer-remoteness', SETTLEMENTS_KEY = 'amazon-explorer-settlements';
+  const applyTrails = () => {
+    const on = trails.checked, remote = on && remoteToggle.checked, towns = on && settlementsToggle.checked;
+    map!.setLayoutProperty('river-trails', 'visibility', on ? 'visible' : 'none');
+    map!.setLayoutProperty('river-remote', 'visibility', remote ? 'visible' : 'none');
+    for (const id of ['settlement-dots', 'settlement-names']) map!.setLayoutProperty(id, 'visibility', towns ? 'visible' : 'none');
+    remoteBox.classList.toggle('off', !on); settlementsBox.classList.toggle('off', !on);
+    remoteBox.classList.toggle('on', remote);
   };
-  try { remoteToggle.checked = localStorage.getItem(REMOTE_KEY) === '1'; } catch {} // off by default
-  map.once('load', applyRemote);
-  remoteToggle.addEventListener('change', () => { applyRemote(); try { localStorage.setItem(REMOTE_KEY, remoteToggle.checked ? '1' : '0'); } catch {} });
+  try {
+    trails.checked = localStorage.getItem(TRAILS_KEY) !== '0'; // on by default
+    remoteToggle.checked = localStorage.getItem(REMOTE_KEY) === '1'; // off by default
+    settlementsToggle.checked = localStorage.getItem(SETTLEMENTS_KEY) === '1'; // off by default
+  } catch {}
+  map.once('load', applyTrails);
+  const remember = (key: string, box: HTMLInputElement) => { try { localStorage.setItem(key, box.checked ? '1' : '0'); } catch {} };
+  trails.addEventListener('change', () => { applyTrails(); remember(TRAILS_KEY, trails); });
+  remoteToggle.addEventListener('change', () => { applyTrails(); remember(REMOTE_KEY, remoteToggle); });
+  settlementsToggle.addEventListener('change', () => { applyTrails(); remember(SETTLEMENTS_KEY, settlementsToggle); });
 
   // Countries toggle: borders and names together
   const countriesToggle = document.getElementById('countries') as HTMLInputElement;

@@ -138,27 +138,33 @@ html, body {
 .maplibregl-canvas-container.maplibregl-interactive:active { cursor: move !important; }
 
 /* River Trails / River Labels / Countries / Remoteness toggles: same frame as the slider box, a square check box with an X when on */
-#trails-control, #labels-control, #countries-control, #remote-control {
+#trails-control, #labels-control, #countries-control, #remote-control, #settlements-control {
   display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-top: -1px; cursor: pointer;
   background: var(--bg); border: 1px solid var(--border); color: var(--muted);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 11px; letter-spacing: 0.02em; user-select: none;
 }
-#trails-control input, #labels-control input, #countries-control input, #remote-control input { position: absolute; opacity: 0; width: 0; height: 0; }
-#trails-control .box, #labels-control .box, #countries-control .box, #remote-control .box {
+#trails-control input, #labels-control input, #countries-control input, #remote-control input, #settlements-control input { position: absolute; opacity: 0; width: 0; height: 0; }
+#trails-control .box, #labels-control .box, #countries-control .box, #remote-control .box, #settlements-control .box {
   order: 2; margin-left: auto; /* box sits at the right edge, label text on the left */
   width: 11px; height: 11px; box-sizing: border-box; border: 1px solid var(--fg); display: grid; place-items: center;
   font-size: 10px; line-height: 1; font-weight: 700; color: var(--fg);
 }
-#trails-control input:checked + .box::before, #labels-control input:checked + .box::before, #countries-control input:checked + .box::before, #remote-control input:checked + .box::before { content: "X"; }
-#trails-control:hover, #labels-control:hover, #countries-control:hover, #remote-control:hover { color: var(--fg); }
-#trails-control input:focus-visible + .box, #labels-control input:focus-visible + .box, #countries-control input:focus-visible + .box, #remote-control input:focus-visible + .box { outline: 1px solid var(--fg); outline-offset: 2px; }
+#trails-control input:checked + .box::before, #labels-control input:checked + .box::before, #countries-control input:checked + .box::before, #remote-control input:checked + .box::before, #settlements-control input:checked + .box::before { content: "X"; }
+#trails-control:hover, #labels-control:hover, #countries-control:hover, #remote-control:hover, #settlements-control:hover { color: var(--fg); }
+#trails-control input:focus-visible + .box, #labels-control input:focus-visible + .box, #countries-control input:focus-visible + .box, #remote-control input:focus-visible + .box, #settlements-control input:focus-visible + .box { outline: 1px solid var(--fg); outline-offset: 2px; }
 
-/* Remoteness: the check row, then a legend strip (white = no town in reach, orange = in a city) */
+/* sub-items of River Trails: indented, and greyed out while the trails are off */
+#controls .sub { padding-left: 28px; }
+#controls .sub.off { color: var(--muted-dim); pointer-events: none; }
+#controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
+#controls .sub.off .legend { display: none; }
+
+/* Remoteness: the check row, then a legend strip (orange = in a city, fading to nothing where no town is in reach) */
 #remote-control { flex-direction: column; align-items: stretch; gap: 6px; }
 #remote-control .row { display: flex; align-items: center; gap: 8px; }
 #remote-control .legend { display: none; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.04em; color: var(--muted); }
 #remote-control.on .legend { display: flex; }
-#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, #ffffff, #ff4a1c); }
+#remote-control .legend i { flex: 1; height: 4px; background: linear-gradient(to right, rgba(255, 74, 28, 0), #ff4a1c); }
 
 /* Units switch for the scale bar: same frame, "mi / km" on the right with the active unit in full strength */
 #units-control {
@@ -214,14 +220,15 @@ html, body {
   #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 15px; font-weight: 700; letter-spacing: normal; color: var(--fg-soft); }
   #controls-close { background: none; border: none; color: var(--muted); font-size: 32px; line-height: 1; cursor: pointer; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   /* rows: 50% larger type, thumb-sized, full width */
-  #visible-control, #trails-control, #labels-control, #countries-control, #remote-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
+  #visible-control, #trails-control, #labels-control, #countries-control, #remote-control, #settlements-control, #units-control, #snapshot { font-size: 15px; padding: 12px 14px; }
+  #controls .sub { padding-left: 36px; }
   #remote-control .legend { font-size: 12px; }
   #remote-control .legend i { height: 6px; }
   #visible-control { gap: 12px; }
   #visible { width: 100%; height: 24px; }
   #visible::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -7.5px; }
   #visible::-moz-range-thumb { width: 16px; height: 16px; }
-  #trails-control .box, #labels-control .box, #countries-control .box, #remote-control .box { width: 16px; height: 16px; font-size: 14px; }
+  #trails-control .box, #labels-control .box, #countries-control .box, #remote-control .box, #settlements-control .box { width: 16px; height: 16px; font-size: 14px; }
   #snapshot { margin-top: 8px; }
   .zoom-control button, .options-control button { width: 40px; height: 40px; } /* thumb-sized */
   .zoom-control svg { width: 24px; height: 24px; }
