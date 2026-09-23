@@ -16,6 +16,7 @@ type Counts = Uint8Array | Uint16Array | Uint32Array;
 /** count: coverage per cell in fixed point, FULL per fully covered fine cell (partial at the corridor edge). */
 interface Level { M: number; x0: number; y0: number; w: number; h: number; count: Counts; finePerCell: number }
 const FULL = 255;
+const LOW_POWER = 0.8; // threshold growth below s0, see needFor
 
 /**
  * n: cells per tile side. grid: (n+2)^2 visibility with one cell of padding. bridges: same layout,
@@ -125,7 +126,11 @@ export class Mask {
   private needFor(l: Level): number {
     if (l.finePerCell === 1) return 1;
     const cf = this.index.coarseFraction;
-    const minFraction = cf.cap - (cf.cap - cf.t0) * Math.exp(-cf.k * (this.scale - cf.s0));
+    // Below s0 the fitted exponential dropped as fast as the coverage shrinks, so which coarse cells
+    // show was decided by noise and 5% could show more than 10%. Coverage is about proportional to the
+    // scale there (only the innermost cells count, at partial weight); a threshold that grows more
+    // slowly than that, as a power below 1, makes the visible set strictly grow with the slider.
+    const minFraction = this.scale < cf.s0 ? cf.t0 * Math.pow(this.scale / cf.s0, LOW_POWER) : cf.cap - (cf.cap - cf.t0) * Math.exp(-cf.k * (this.scale - cf.s0));
     return Math.max(1, Math.ceil(l.finePerCell * FULL * minFraction));
   }
 
