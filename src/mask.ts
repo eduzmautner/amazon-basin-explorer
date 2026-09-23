@@ -62,7 +62,7 @@ export class Mask {
 
   /** Corridor scale in 0..1 (the slider): 1 = full corridor widths. */
   setVisible(scale: number) {
-    const s = Math.min(1, Math.max(0.02, scale));
+    const s = Math.min(1, Math.max(0, scale)); // 0 = no land at all
     if (s === this.scale) return;
     this.scale = s;
     this.rebuild();

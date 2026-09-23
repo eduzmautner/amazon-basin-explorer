@@ -336,19 +336,19 @@ async function boot() {
   map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
 
-  // River Trails toggle, with two sub-items that only take effect while the trails are on:
-  // Remoteness (the red tint) and Settlements (town dots and names)
+  // River Trails toggle, with Remoteness (the red tint) as a sub-item that only takes effect while the
+  // trails are on; Settlements (town dots and names) is its own toggle
   const trails = document.getElementById('trails') as HTMLInputElement;
   const remoteToggle = document.getElementById('remote') as HTMLInputElement;
   const settlementsToggle = document.getElementById('settlements') as HTMLInputElement;
-  const remoteBox = document.getElementById('remote-control')!, settlementsBox = document.getElementById('settlements-control')!;
+  const remoteBox = document.getElementById('remote-control')!;
   const TRAILS_KEY = 'amazon-explorer-trails', REMOTE_KEY = 'amazon-explorer-remoteness', SETTLEMENTS_KEY = 'amazon-explorer-settlements';
   const applyTrails = () => {
-    const on = trails.checked, remote = on && remoteToggle.checked, towns = on && settlementsToggle.checked;
+    const on = trails.checked, remote = on && remoteToggle.checked, towns = settlementsToggle.checked;
     map!.setLayoutProperty('river-trails', 'visibility', on ? 'visible' : 'none');
     map!.setLayoutProperty('river-remote', 'visibility', remote ? 'visible' : 'none');
     for (const id of ['settlement-dots', 'settlement-names']) map!.setLayoutProperty(id, 'visibility', towns ? 'visible' : 'none');
-    remoteBox.classList.toggle('off', !on); settlementsBox.classList.toggle('off', !on);
+    remoteBox.classList.toggle('off', !on);
     remoteBox.classList.toggle('on', remote);
   };
   try {

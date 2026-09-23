@@ -17,9 +17,9 @@ const SETTLEMENTS = 'data/work/settlements.json'; // from build-settlements.mjs 
 // Remoteness: every town casts a glow that fades with distance; a stretch of river takes the strongest
 // glow reaching it, scored 0 (no town in reach) .. 99 (in a big city) and drawn white .. orange.
 //   strength S(pop): 0.3 for a 2,000 town rising on a log scale to 1 at 2.2 million (Manaus)
-//   reach R(pop): 10 km for a 2,000 town, growing with the cube root of population (~100 km for Manaus)
+//   reach R(pop): 7.5 km for a 2,000 town, growing with the cube root of population (~77 km for Manaus)
 //   glow = S * exp(-d / R), d = straight-line distance from the reach's midpoint
-const REM_LEVELS = 100, REM_POP0 = 2000, REM_POP1 = 2.2e6, REM_S0 = 0.3, REM_R0_KM = 10, REM_FLOOR = 0.005;
+const REM_LEVELS = 100, REM_POP0 = 2000, REM_POP1 = 2.2e6, REM_S0 = 0.3, REM_R0_KM = 7.5, REM_FLOOR = 0.005;
 const KM_PER_DEG = 111.32;
 const settlements = fs.existsSync(SETTLEMENTS) ? JSON.parse(fs.readFileSync(SETTLEMENTS, 'utf8')).map((p) => {
   const S = REM_S0 + (1 - REM_S0) * Math.min(1, Math.max(0, Math.log10(p.pop / REM_POP0) / Math.log10(REM_POP1 / REM_POP0)));
