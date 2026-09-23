@@ -4,7 +4,7 @@ import { BASE } from './base';
 
 const EARTH_CIRC = 40075016.686;
 const MILE_M = 1609.344;
-/** Basin overview extent (lon/lat). 3:2 in mercator at this latitude band. */
+/** Basin overview extent (lon/lat), about 1.23:1 in mercator; it is fitted into the 3:2 canvas at one scale and centred. */
 const EXTENT = { w: -81, e: -46, s: -21.5, n: 6.5 };
 /** 3:2; smaller on phones so it does not crowd the bottom edge. */
 const SIZE = window.matchMedia("(max-width: 640px)").matches ? { w: 150, h: 100 } : { w: 210, h: 140 };
@@ -56,9 +56,17 @@ export class MiniMapControl implements maplibregl.IControl {
   /** Follows the Countries toggle. */
   setCountries(on: boolean) { this.showBorders = on; this.refresh(); }
 
-  private toPx(lon: number, lat: number): [number, number] {
+  /** One scale for both axes (canvas device pixels per mercator unit), with the extent centred: no stretch. */
+  private fit() {
     const dpr = window.devicePixelRatio || 1;
-    return [((mercX(lon) - this.px0) / (this.px1 - this.px0)) * WIDTH * dpr, ((mercY(lat) - this.py0) / (this.py1 - this.py0)) * HEIGHT * dpr];
+    const k = Math.min((WIDTH * dpr) / (this.px1 - this.px0), (HEIGHT * dpr) / (this.py1 - this.py0));
+    const offX = (WIDTH * dpr - (this.px1 - this.px0) * k) / 2, offY = (HEIGHT * dpr - (this.py1 - this.py0) * k) / 2;
+    return { k, offX, offY };
+  }
+
+  private toPx(lon: number, lat: number): [number, number] {
+    const { k, offX, offY } = this.fit();
+    return [(mercX(lon) - this.px0) * k + offX, (mercY(lat) - this.py0) * k + offY];
   }
 
   private css(name: string) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
@@ -70,8 +78,9 @@ export class MiniMapControl implements maplibregl.IControl {
     // silhouette
     const s = this.mask.silhouette(SILHOUETTE_MASK_ZOOM);
     const scale = 2 ** s.M;
-    const sx = (WIDTH * dpr) / ((this.px1 - this.px0) * scale), sy = (HEIGHT * dpr) / ((this.py1 - this.py0) * scale);
-    const ox = this.px0 * scale, oy = this.py0 * scale;
+    const { k, offX, offY } = this.fit();
+    const sx = k / scale, sy = k / scale; // mask cells are in tile units at zoom M
+    const ox = this.px0 * scale - offX / sx, oy = this.py0 * scale - offY / sy;
     ctx.fillStyle = this.css('--muted');
     for (let cy = 0; cy < s.h; cy++) for (let cx = 0; cx < s.w; cx++) {
       if (!s.on[cy * s.w + cx]) continue;
