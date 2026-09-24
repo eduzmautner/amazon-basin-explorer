@@ -71,7 +71,7 @@ for (const [id, r] of reaches) {
 }
 const isMainPredOfSomething = new Set(mainPred.values());
 const hasUpstream = new Set(mainPred.keys());
-const features = [];
+const chains = []; // { up, runs: [{ ord, rem, c, km }] }, runs in downstream order sharing their end vertices
 for (const [id] of reaches) {
   if (hasUpstream.has(id)) continue; // not a headwater: some chain passes through it
   const coords = [];
@@ -93,15 +93,53 @@ for (const [id] of reaches) {
   const sm = smooth(coords, 2);
   const f = sm.length / coords.length; // 4 after two passes, 1 when the chain was too short to smooth
   const up = Math.round(maxUp); // the chain's size at its mouth, on every run, so big rivers draw whole at low zoom
+  const chain = { up, runs: [] };
   for (let k = 0; k < runs.length; k++) {
     const a = runs[k].start * f, b = k + 1 < runs.length ? runs[k + 1].start * f : sm.length - 1;
     const seg = sm.slice(a, b + 1);
     if (seg.length < 2) continue;
-    features.push({ type: 'Feature', properties: { up, ord: runs[k].ord, rem: runs[k].rem }, geometry: { type: 'LineString', coordinates: seg } });
+    chain.runs.push({ ord: runs[k].ord, rem: runs[k].rem, c: seg, km: lengthKm(seg) });
   }
+  if (chain.runs.length) chains.push(chain);
 }
 void isMainPredOfSomething;
-log('river runs after chaining and cutting by order and remoteness:', features.length);
+log('chains:', chains.length, 'runs after cutting by order and remoteness:', chains.reduce((n, ch) => n + ch.runs.length, 0));
+
+function lengthKm(c) {
+  let km = 0;
+  for (let i = 1; i < c.length; i++) km += Math.hypot((c[i][0] - c[i - 1][0]) * Math.cos((c[i][1] * Math.PI) / 180), c[i][1] - c[i - 1][1]) * KM_PER_DEG;
+  return km;
+}
+
+// The tiler drops any line shorter than its tolerance (about a pixel), so at low zooms the short runs
+// where the remoteness level changes every few km would vanish and leave the trail dashed. For each
+// zoom, runs shorter than MIN_RUN_PX are merged into their neighbours along the chain: the merged run
+// takes the order of its longest part and the length-weighted mean remoteness level.
+const MIN_RUN_PX = 6;
+function featuresForZoom(z, subsetChains) {
+  const kmPerPx = 40075 / (512 * 2 ** z); // at the equator; the basin sits near it
+  const minKm = MIN_RUN_PX * kmPerPx;
+  const out = [];
+  for (const ch of subsetChains) {
+    const groups = [];
+    let g = null;
+    for (const r of ch.runs) {
+      if (g && (g.km < minKm || r.km < minKm || (g.ord === r.ord && g.rem === r.rem))) {
+        // merge: the runs share their boundary vertex
+        g.c = g.c.concat(r.c.slice(1));
+        g.remKm += r.rem * r.km; g.km += r.km;
+        if (r.km > g.longest) { g.longest = r.km; g.ord = r.ord; }
+        g.rem = Math.round(g.remKm / g.km);
+      } else {
+        if (g) groups.push(g);
+        g = { ord: r.ord, rem: r.rem, c: r.c, km: r.km, remKm: r.rem * r.km, longest: r.km };
+      }
+    }
+    if (g) groups.push(g);
+    for (const q of groups) out.push({ type: 'Feature', properties: { up: ch.up, ord: q.ord, rem: q.rem }, geometry: { type: 'LineString', coordinates: q.c } });
+  }
+  return out;
+}
 
 // Chaikin corner cutting: the source follows a 460 m grid in 45° steps; two passes round that into
 // curves without moving any point more than about half a cell.
@@ -123,7 +161,7 @@ let written = 0, bytes = 0;
 const keys = [];
 for (let z = MIN_Z; z <= MAX_Z; z++) {
   const thr = THRESHOLD[z];
-  const subset = features.filter((f) => f.properties.up >= thr);
+  const subset = featuresForZoom(z, chains.filter((ch) => ch.up >= thr));
   // (a chain's up is its downstream-most reach, so big rivers are drawn whole and small ones dropped)
   // tolerance 8 = 1 screen px (4096 units per 512 px tile): a line that wiggles within its own width
   // draws over itself and looks brighter than its opacity, worst at low zoom where source vertices
