@@ -160,7 +160,8 @@ async function boot() {
           type: 'circle',
           source: 'settlements',
           layout: { visibility: 'none' },
-          paint: { 'circle-radius': ['case', ['==', ['get', 'kind'], 'city'], 4, 3], 'circle-color': '#ffffff', 'circle-stroke-color': '#000000', 'circle-stroke-width': 1 },
+          // radius 4 px for cities (8 px across), 2 px for towns (4 px across), plus the 1 px rim outside
+          paint: { 'circle-radius': ['case', ['==', ['get', 'kind'], 'city'], 4, 2], 'circle-color': '#ffffff', 'circle-stroke-color': '#000000', 'circle-stroke-width': 1 },
         },
         {
           id: 'settlement-names',
