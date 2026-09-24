@@ -113,29 +113,27 @@ function lengthKm(c) {
 
 // The tiler drops any line shorter than its tolerance (about a pixel), so at low zooms the short runs
 // where the remoteness level changes every few km would vanish and leave the trail dashed. For each
-// zoom, runs shorter than MIN_RUN_PX are merged into their neighbours along the chain: the merged run
-// takes the order of its longest part and the length-weighted mean remoteness level.
-const MIN_RUN_PX = 6;
+// zoom, consecutive runs are grouped along the chain until a group is at least MIN_RUN_PX long, then
+// the group closes, so the tint keeps its resolution at that zoom (a town's bright kilometres are
+// averaged over a few pixels, not over the long quiet stretch before them). A merged group takes the
+// order of its longest part and the length-weighted mean remoteness level.
+const MIN_RUN_PX = 3;
 function featuresForZoom(z, subsetChains) {
   const kmPerPx = 40075 / (512 * 2 ** z); // at the equator; the basin sits near it
   const minKm = MIN_RUN_PX * kmPerPx;
   const out = [];
+  const absorb = (g, r) => { g.c = g.c.concat(r.c.slice(1)); g.remKm += r.rem * r.km; g.km += r.km; if (r.km > g.longest) { g.longest = r.km; g.ord = r.ord; } g.rem = Math.round(g.remKm / g.km); };
   for (const ch of subsetChains) {
     const groups = [];
     let g = null;
     for (const r of ch.runs) {
-      if (g && (g.km < minKm || r.km < minKm || (g.ord === r.ord && g.rem === r.rem))) {
-        // merge: the runs share their boundary vertex
-        g.c = g.c.concat(r.c.slice(1));
-        g.remKm += r.rem * r.km; g.km += r.km;
-        if (r.km > g.longest) { g.longest = r.km; g.ord = r.ord; }
-        g.rem = Math.round(g.remKm / g.km);
-      } else {
-        if (g) groups.push(g);
-        g = { ord: r.ord, rem: r.rem, c: r.c, km: r.km, remKm: r.rem * r.km, longest: r.km };
-      }
+      if (g && (g.km < minKm || (g.ord === r.ord && g.rem === r.rem))) absorb(g, r);
+      else { if (g) groups.push(g); g = { ord: r.ord, rem: r.rem, c: r.c, km: r.km, remKm: r.rem * r.km, longest: r.km }; }
     }
-    if (g) groups.push(g);
+    if (g) {
+      // a short tail would be dropped by the tiler: fold it into the group before it
+      if (g.km < minKm && groups.length) absorb(groups[groups.length - 1], g); else groups.push(g);
+    }
     for (const q of groups) out.push({ type: 'Feature', properties: { up: ch.up, ord: q.ord, rem: q.rem }, geometry: { type: 'LineString', coordinates: q.c } });
   }
   return out;
