@@ -292,14 +292,23 @@ async function boot() {
     black: 'Blackwater river: tannin-stained, sediment-poor',
     clear: 'Clearwater river: draining the ancient shields',
   };
-  const showRiver = (info: RiverInfo) => {
+  type Row = [string, string] | [string, string, () => void]; // label, value, optional click action on the value
+  const fillPanel = (title: string, subtitle: string, note: string, rows: Row[]) => {
     openOptions(false); // one bottom sheet at a time on phones
-    rpName.textContent = info.name;
-    rpWater.textContent = info.water ? WATER[info.water] : '';
-    rpWater.hidden = !info.water;
-    rpNote.textContent = info.note ?? '';
-    rpNote.hidden = !info.note;
-    const rows: [string, string][] = [
+    rpName.textContent = title;
+    rpWater.textContent = subtitle;
+    rpWater.hidden = !subtitle;
+    rpNote.textContent = note;
+    rpNote.hidden = !note;
+    rpRows.replaceChildren(...rows.map(([k, v, act]) => {
+      const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k; const b = document.createElement('td');
+      if (act) { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'link'; btn.textContent = v; btn.addEventListener('click', act); b.appendChild(btn); } else b.textContent = v;
+      tr.append(a, b); return tr;
+    }));
+    panel.classList.add('open');
+  };
+  const showRiver = (info: RiverInfo) => {
+    const rows: Row[] = [
       ['Length', km(info.lengthKm)],
       ['Distance to the sea', km(info.toSeaKm)],
       ['Source elevation', info.eleSource === null ? 'N/A' : fmt.format(info.eleSource) + ' m'],
@@ -315,8 +324,21 @@ async function boot() {
       ['Population density', info.popDensity === null ? 'N/A' : info.popDensity.toFixed(1) + ' / km²'],
     ];
     if (info.regulationPct !== null && info.regulationPct > 0) rows.push(['Flow regulated by dams', info.regulationPct.toFixed(1) + ' %']);
-    rpRows.replaceChildren(...rows.map(([k, v]) => { const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k; const b = document.createElement('td'); b.textContent = v; tr.append(a, b); return tr; }));
-    panel.classList.add('open');
+    fillPanel(info.name, info.water ? WATER[info.water] : '', info.note ?? '', rows);
+  };
+  // settlement panel, from the dot's own properties (GeoNames, plus the nearest named river from the pipeline)
+  const ADMIN_LABEL: Record<string, string> = { Brazil: 'State', Peru: 'Region', Bolivia: 'Department', Colombia: 'Department', Ecuador: 'Province', Venezuela: 'State', Guyana: 'Region' };
+  const showSettlement = (p: Record<string, any>) => {
+    const where = [p.admin1, p.country].filter(Boolean).join(', ');
+    const rows: Row[] = [
+      ['Population', fmt.format(p.pop)],
+      ['Country', p.country ?? 'N/A'],
+      [ADMIN_LABEL[p.country] ?? 'Province', p.admin1 ?? 'N/A'],
+      ['Elevation', p.elev === null || p.elev === undefined ? 'N/A' : fmt.format(p.elev) + ' m'],
+    ];
+    if (p.river) rows.push(['Nearest river', p.riverKm >= 3 ? `${p.river} (${p.riverKm} km)` : p.river, () => openRiver(p.riverRid)]);
+    else rows.push(['Nearest river', 'N/A']);
+    fillPanel(p.name, (p.kind === 'city' ? 'City in ' : 'Town in ') + where, 'Population and elevation from GeoNames; the nearest river is the largest named river within 10 km, else the closest.', rows);
   };
   const openRiver = async (rid: string) => {
     riverInfo ??= fetch(BASE + 'riverinfo.json').then((r) => r.json());
@@ -328,13 +350,18 @@ async function boot() {
   const TAP_PX = 14;
   map.on('click', async (e) => {
     const { x, y } = e.point;
-    const hits = map!.queryRenderedFeatures([[x - TAP_PX, y - TAP_PX], [x + TAP_PX, y + TAP_PX]], { layers: ['river-names'] });
+    const box: [[number, number], [number, number]] = [[x - TAP_PX, y - TAP_PX], [x + TAP_PX, y + TAP_PX]];
+    const town = map!.queryRenderedFeatures(box, { layers: ['settlement-dots', 'settlement-names'] })[0];
+    if (town) { showSettlement(town.properties as Record<string, any>); return; }
+    const hits = map!.queryRenderedFeatures(box, { layers: ['river-names'] });
     const rid = hits[0]?.properties?.rid as string | undefined;
     if (rid) await openRiver(rid);
   });
   const cc = map.getCanvasContainer();
-  map.on('mouseenter', 'river-names', () => cc.classList.add('on-label'));
-  map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
+  for (const id of ['river-names', 'settlement-dots', 'settlement-names']) {
+    map.on('mouseenter', id, () => cc.classList.add('on-label'));
+    map.on('mouseleave', id, () => cc.classList.remove('on-label'));
+  }
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.classList.remove('open'); });
 
   // River Trails toggle, with Urban proximity (the magenta tint) as a sub-item that only takes effect while the

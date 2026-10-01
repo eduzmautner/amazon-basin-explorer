@@ -221,6 +221,9 @@ html, body {
 #river-panel td { padding: 5px 0; border-top: 1px solid var(--muted-dim); vertical-align: top; }
 #river-panel td:first-child { color: var(--muted); padding-right: 12px; white-space: nowrap; }
 #river-panel td:last-child { text-align: right; color: var(--fg); font-weight: 700; font-size: 13px; }
+/* a value that opens another panel (a town's nearest river) */
+#river-panel .link { background: none; border: none; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 2px; }
+#river-panel .link:hover { text-decoration-color: var(--fg); }
 #river-panel .note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .maplibregl-canvas-container.maplibregl-interactive.on-label { cursor: pointer !important; }
 

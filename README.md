@@ -56,8 +56,9 @@ Tuning knobs live in `pipeline/config.mjs`.
 5a. `node pipeline/build-countries.mjs` builds `public/countries.json` (country borders as the edges shared by two
    Natural Earth countries, plus a label point each) for the "Countries" toggle.
 5a2. `node pipeline/build-settlements.mjs` builds `public/settlements.json` (towns of 2,000+ people near the basin's
-   rivers) from GeoNames `cities500.txt` (download https://download.geonames.org/export/dump/cities500.zip into
-   `data/raw/geonames/`). Run it before 5b: the trail tiles carry a urban-proximity level per stretch, the strongest
+   rivers, with population, country, province, elevation and nearest named river) from GeoNames `cities500.txt` and
+   `admin1CodesASCII.txt` (download both from https://download.geonames.org/export/dump/ into `data/raw/geonames/`)
+   and `data/work/river-sections.json` from step 5c, so run 5c first. Run it before 5b: the trail tiles carry a urban-proximity level per stretch, the strongest
    town glow reaching it (strength from population on a log scale, reach growing with the cube root of population).
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract

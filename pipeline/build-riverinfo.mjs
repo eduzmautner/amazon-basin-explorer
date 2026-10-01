@@ -203,5 +203,7 @@ for (const r of rivers) {
   };
 }
 fs.writeFileSync('public/riverinfo.json', JSON.stringify(out));
+// each river's section as reach ids, for build-settlements.mjs (nearest named river to a town)
+fs.writeFileSync('data/work/river-sections.json', JSON.stringify([...sections].map(([rid, s]) => ({ rid, reaches: s.chain, lengthKm: Math.round(s.lengthKm) }))));
 log(`wrote public/riverinfo.json: ${Object.keys(out).length} rivers, ${missing} without atlas record, ${(fs.statSync('public/riverinfo.json').size / 1024).toFixed(0)} KB`);
 console.log('Rio Amazonas (main stem):', out['60443230|Rio Amazonas']);
