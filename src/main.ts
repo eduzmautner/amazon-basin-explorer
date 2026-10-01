@@ -293,7 +293,9 @@ async function boot() {
     clear: 'Clearwater river: draining the ancient shields',
   };
   type Row = [string, string] | [string, string, () => void]; // label, value, optional click action on the value
-  const fillPanel = (title: string, subtitle: string, note: string, rows: Row[]) => {
+  const RIVER_CREDIT = document.getElementById('rp-credit')!.textContent!;
+  const fillPanel = (title: string, subtitle: string, note: string, rows: Row[], credit = RIVER_CREDIT) => {
+    document.getElementById('rp-credit')!.textContent = credit;
     openOptions(false); // one bottom sheet at a time on phones
     rpName.textContent = title;
     rpWater.textContent = subtitle;
@@ -338,7 +340,7 @@ async function boot() {
     ];
     if (p.river) rows.push(['Nearest river', p.riverKm >= 3 ? `${p.river} (${p.riverKm} km)` : p.river, () => openRiver(p.riverRid)]);
     else rows.push(['Nearest river', 'N/A']);
-    fillPanel(p.name, (p.kind === 'city' ? 'City in ' : 'Town in ') + where, 'Population and elevation from GeoNames; the nearest river is the largest named river within 10 km, else the closest.', rows);
+    fillPanel(p.name, (p.kind === 'city' ? 'City in ' : 'Town in ') + where, '', rows, 'Population and elevation from GeoNames; river distances from the HydroRIVERS network.');
   };
   const openRiver = async (rid: string) => {
     riverInfo ??= fetch(BASE + 'riverinfo.json').then((r) => r.json());
