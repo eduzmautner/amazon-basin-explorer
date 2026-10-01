@@ -264,7 +264,7 @@ html, body {
   .zoom-control button, .options-control button { width: 40px; height: 40px; } /* thumb-sized */
   .zoom-control svg { width: 24px; height: 24px; }
   #river-panel {
-    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 55vh;
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 50vh;
     border-left: none; border-right: none; border-bottom: none;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
