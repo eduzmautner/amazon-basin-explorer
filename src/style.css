@@ -205,7 +205,11 @@ html, body {
   background: var(--bg); border: 1px solid var(--border); color: var(--fg);
   font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 12px; letter-spacing: 0.02em; padding: 10px 12px 12px;
 }
-#river-panel[hidden] { display: none; }
+/* slides in from the left edge (desktop) or up from the bottom (phones), easing out both ways; while closed it
+   sits off screen and is unreachable (visibility flips after the slide out) */
+#river-panel { transform: translateX(calc(-100% - 20px)); visibility: hidden; transition: transform .3s ease-out, visibility 0s linear .3s; }
+#river-panel.open { transform: none; visibility: visible; transition: transform .3s ease-out; }
+@media (prefers-reduced-motion: reduce) { #river-panel, #river-panel.open, #controls, #controls.open { transition: none; } }
 #river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 #river-panel .head:has(+ .water[hidden]) { margin-bottom: 12px; } /* no water type: the same gap sits under the name */
 #river-panel h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } /* tight, mid-century tracking */
@@ -228,10 +232,13 @@ html, body {
   .maplibregl-ctrl.options-control { display: block; }
   /* the controls become a bottom sheet, opened from the map-options button; same sheet as the river info */
   #controls {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: none; max-height: 70vh; overflow: auto;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; max-height: 70vh; overflow: auto;
+    transform: translateY(100%); visibility: hidden; transition: transform .3s ease-out, visibility 0s linear .3s;
     background: var(--bg); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   }
-  #controls.open { display: flex; }
+  #controls.open { transform: none; visibility: visible; transition: transform .3s ease-out; }
+  #river-panel { transform: translateY(100%); }
+  #river-panel.open { transform: none; }
   #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   /* a small technical heading rather than a title; the rows match the river panel's field names */
   #controls .sheet-head h2 { margin: 0; font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 15px; font-weight: 700; letter-spacing: normal; color: var(--fg-soft); }

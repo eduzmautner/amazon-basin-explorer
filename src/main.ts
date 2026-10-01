@@ -242,7 +242,7 @@ async function boot() {
   map.addControl(new ZoomControl(), 'bottom-right'); // above the minimap, or right above the scale bar while that is hidden
   // phones: the controls live in a bottom sheet opened from this button (CSS hides the button on wider screens)
   const controls = document.getElementById('controls')!;
-  const openOptions = (on: boolean) => { controls.classList.toggle('open', on); if (on) document.getElementById('river-panel')!.hidden = true; };
+  const openOptions = (on: boolean) => { controls.classList.toggle('open', on); if (on) document.getElementById('river-panel')!.classList.remove('open'); };
   map.addControl(new OptionsControl(() => openOptions(!controls.classList.contains('open'))), 'bottom-right');
   document.getElementById('controls-close')!.addEventListener('click', () => openOptions(false));
   // start collapsed to the (i) button; MapLibre opens it once the style loads
@@ -316,7 +316,7 @@ async function boot() {
     ];
     if (info.regulationPct !== null && info.regulationPct > 0) rows.push(['Flow regulated by dams', info.regulationPct.toFixed(1) + ' %']);
     rpRows.replaceChildren(...rows.map(([k, v]) => { const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k; const b = document.createElement('td'); b.textContent = v; tr.append(a, b); return tr; }));
-    panel.hidden = false;
+    panel.classList.add('open');
   };
   const openRiver = async (rid: string) => {
     riverInfo ??= fetch(BASE + 'riverinfo.json').then((r) => r.json());
@@ -335,7 +335,7 @@ async function boot() {
   const cc = map.getCanvasContainer();
   map.on('mouseenter', 'river-names', () => cc.classList.add('on-label'));
   map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
-  document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
+  document.getElementById('rp-close')!.addEventListener('click', () => { panel.classList.remove('open'); });
 
   // River Trails toggle, with Urban proximity (the magenta tint) as a sub-item that only takes effect while the
   // trails are on; Settlements (town dots and names) is its own toggle
@@ -386,7 +386,7 @@ async function boot() {
   const LABELS_KEY = 'amazon-explorer-labels';
   const applyLabels = () => {
     map!.setLayoutProperty('river-names', 'visibility', labelsToggle.checked ? 'visible' : 'none');
-    if (!labelsToggle.checked) { panel.hidden = true; cc.classList.remove('on-label'); }
+    if (!labelsToggle.checked) { panel.classList.remove('open'); cc.classList.remove('on-label'); }
   };
   try { labelsToggle.checked = localStorage.getItem(LABELS_KEY) !== '0'; } catch {}
   map.once('load', applyLabels);
