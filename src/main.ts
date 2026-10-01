@@ -136,8 +136,8 @@ async function boot() {
           type: 'line',
           source: 'highlight',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          // the river itself at 80%, its continuation through bigger rivers to the sea at 50%
-          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': ['case', ['get', 'own'], 0.8, 0.5] },
+          // the river itself at 80%, its continuation through bigger rivers to the sea at 40%
+          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': ['case', ['get', 'own'], 0.8, 0.4] },
         },
         {
           id: 'river-names',
