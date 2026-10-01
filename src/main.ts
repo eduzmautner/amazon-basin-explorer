@@ -25,7 +25,7 @@ const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] a
 const REMOTE_COLOR = '#ff00cc'; // hsl(312, 100%, 50%): full-brightness magenta
 const REMOTE_OPACITY = ['/', ['coalesce', ['get', 'rem'], 0], 99] as any;
 // the selected river's course to the sea, drawn from its own geometry (public/chains) so it shows at every zoom
-const HIGHLIGHT_COLOR = '#00e5ff', HIGHLIGHT_WIDTH = { desktop: 3, phone: 2.5 };
+const HIGHLIGHT_COLOR = '#00e5ff', HIGHLIGHT_WIDTH = { desktop: 2, phone: 1.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
 
