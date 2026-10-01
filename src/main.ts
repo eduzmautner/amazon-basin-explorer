@@ -24,6 +24,8 @@ const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any;
 const REMOTE_COLOR = '#ff00cc'; // hsl(312, 100%, 50%): full-brightness magenta
 const REMOTE_OPACITY = ['/', ['coalesce', ['get', 'rem'], 0], 99] as any;
+// the selected river's course to the sea, drawn from its own geometry (public/chains) so it shows at every zoom
+const HIGHLIGHT_COLOR = '#00e5ff', HIGHLIGHT_WIDTH = { desktop: 3, phone: 2.5 };
 const textSize = (t: { desktop: number; phone: number }) => (PHONE.matches ? t.phone : t.desktop);
 const forPhone = textSize;
 
@@ -73,6 +75,7 @@ async function boot() {
         outline: { type: 'geojson', data: BASE + 'outline.json' },
         countries: { type: 'geojson', data: BASE + 'countries.json' },
         settlements: { type: 'geojson', data: BASE + 'settlements.json' },
+        highlight: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         labels: {
           type: 'vector',
           tiles: ['labels://{z}/{x}/{y}'],
@@ -127,6 +130,13 @@ async function boot() {
           'source-layer': 'rivers',
           layout: { 'line-join': 'round', 'line-cap': 'butt', visibility: 'none' },
           paint: { 'line-color': REMOTE_COLOR, 'line-width': forPhone(TRAILS_WIDTH), 'line-opacity': REMOTE_OPACITY },
+        },
+        {
+          id: 'river-highlight',
+          type: 'line',
+          source: 'highlight',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': 0.9 },
         },
         {
           id: 'river-names',
@@ -226,6 +236,7 @@ async function boot() {
     map.setLayoutProperty('country-names', 'text-size', textSize(COUNTRY_TEXT));
     map.setPaintProperty('river-trails', 'line-width', forPhone(TRAILS_WIDTH));
     map.setPaintProperty('river-remote', 'line-width', forPhone(TRAILS_WIDTH));
+    map.setPaintProperty('river-highlight', 'line-width', forPhone(HIGHLIGHT_WIDTH));
     map.setPaintProperty('coast', 'line-width', forPhone(COAST_WIDTH));
   });
   map.touchZoomRotate.disableRotation();
@@ -280,6 +291,7 @@ async function boot() {
     gradient: number | null; order: number; disAvg: number | null; disMax: number | null; disMin: number | null;
     inundPct: number | null; lakePct: number | null; lakeVolMcm: number | null; regulationPct: number | null;
     population: number | null; popDensity: number | null; water: 'white' | 'black' | 'clear' | null; note?: string;
+    path?: [number, number][]; // chain segments to the sea: [chain id, km from the start point down to that chain's mouth]
   };
   let riverInfo: Promise<Record<string, RiverInfo>> | undefined;
   const panel = document.getElementById('river-panel')!;
@@ -331,6 +343,7 @@ async function boot() {
   // settlement panel, from the dot's own properties (GeoNames, plus the nearest named river from the pipeline)
   const ADMIN_LABEL: Record<string, string> = { Brazil: 'State', Peru: 'Region', Bolivia: 'Department', Colombia: 'Department', Ecuador: 'Province', Venezuela: 'State', Guyana: 'Region' };
   const showSettlement = (p: Record<string, any>) => {
+    clearHighlight();
     const where = [p.admin1, p.country].filter(Boolean).join(', ');
     const rows: Row[] = [
       ['Population', fmt.format(p.pop)],
@@ -342,10 +355,46 @@ async function boot() {
     else rows.push(['Nearest river', 'N/A']);
     fillPanel(p.name, (p.kind === 'city' ? 'City in ' : 'Town in ') + where, '', rows, 'Population and elevation from GeoNames; river distances from the HydroRIVERS network.');
   };
+  // course highlight: each chain's geometry (head to mouth, delta-encoded 1e-5 degree integers) is fetched
+  // once, then cut at the path's start point by walking back from the mouth
+  const chainCache = new Map<number, Promise<[number, number][]>>();
+  const chainCourse = (ch: number) => {
+    let p = chainCache.get(ch);
+    if (!p) {
+      p = fetch(BASE + `chains/${ch}.json`).then((r) => r.json()).then((ints: number[]) => {
+        const out: [number, number][] = []; let x = 0, y = 0;
+        for (let i = 0; i < ints.length; i += 2) { x += ints[i]; y += ints[i + 1]; out.push([x / 1e5, y / 1e5]); }
+        return out;
+      });
+      chainCache.set(ch, p);
+    }
+    return p;
+  };
+  const kmBetween = (a: [number, number], b: [number, number]) => Math.hypot((b[0] - a[0]) * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180), b[1] - a[1]) * 111.32;
+  const tailFrom = (c: [number, number][], km: number) => { // the last km of a course, mouth end included
+    const out: [number, number][] = [c[c.length - 1]];
+    let acc = 0;
+    for (let i = c.length - 1; i > 0; i--) {
+      const seg = kmBetween(c[i], c[i - 1]);
+      if (acc + seg >= km) { const t = (km - acc) / seg; out.push([c[i][0] + (c[i - 1][0] - c[i][0]) * t, c[i][1] + (c[i - 1][1] - c[i][1]) * t]); break; }
+      acc += seg; out.push(c[i - 1]);
+    }
+    return out.reverse();
+  };
+  let highlightSeq = 0;
+  const setHighlight = async (p: [number, number][] | undefined) => {
+    const seq = ++highlightSeq;
+    const src = map!.getSource('highlight') as maplibregl.GeoJSONSource;
+    if (!p) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
+    const courses = await Promise.all(p.map(([ch]) => chainCourse(ch)));
+    if (seq !== highlightSeq) return; // another river was picked meanwhile
+    src.setData({ type: 'FeatureCollection', features: courses.map((c, i) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: tailFrom(c, p[i][1]) } })) });
+  };
+  const clearHighlight = () => { void setHighlight(undefined); };
   const openRiver = async (rid: string) => {
     riverInfo ??= fetch(BASE + 'riverinfo.json').then((r) => r.json());
     const info = (await riverInfo)[rid];
-    if (info) showRiver(info);
+    if (info) { showRiver(info); void setHighlight(info.path); }
   };
   if (import.meta.env.DEV) (window as any).__openRiver = openRiver;
   // a finger is not a pixel: look for a label within a box around the tap, nearest first
@@ -364,7 +413,7 @@ async function boot() {
     map.on('mouseenter', id, () => cc.classList.add('on-label'));
     map.on('mouseleave', id, () => cc.classList.remove('on-label'));
   }
-  document.getElementById('rp-close')!.addEventListener('click', () => { panel.classList.remove('open'); });
+  document.getElementById('rp-close')!.addEventListener('click', () => { panel.classList.remove('open'); clearHighlight(); });
 
   // River Trails toggle, with Urban proximity (the magenta tint) as a sub-item that only takes effect while the
   // trails are on; Settlements (town dots and names) is its own toggle
@@ -415,7 +464,7 @@ async function boot() {
   const LABELS_KEY = 'amazon-explorer-labels';
   const applyLabels = () => {
     map!.setLayoutProperty('river-names', 'visibility', labelsToggle.checked ? 'visible' : 'none');
-    if (!labelsToggle.checked) { panel.classList.remove('open'); cc.classList.remove('on-label'); }
+    if (!labelsToggle.checked) { panel.classList.remove('open'); clearHighlight(); cc.classList.remove('on-label'); }
   };
   try { labelsToggle.checked = localStorage.getItem(LABELS_KEY) !== '0'; } catch {}
   map.once('load', applyLabels);

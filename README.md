@@ -60,6 +60,8 @@ Tuning knobs live in `pipeline/config.mjs`.
    `admin1CodesASCII.txt` (download both from https://download.geonames.org/export/dump/ into `data/raw/geonames/`)
    and `data/work/river-sections.json` from step 5c, so run 5c first. Run it before 5b: the trail tiles carry a urban-proximity level per stretch, the strongest
    town glow reaching it (strength from population on a log scale, reach growing with the cube root of population).
+5a3. `node pipeline/build-paths.mjs` (after 5c) adds each river's path to the sea to `public/riverinfo.json` and writes
+   the chain courses it needs to `public/chains/` for the cyan course highlight shown when a river is selected.
 5b. `node pipeline/build-rivers.mjs` builds `public/rivers/`, the centreline tiles behind the "River Trails" toggle.
 5c. River info: download RiverATLAS (https://www.hydrosheds.org/hydroatlas, shapefile version) and extract
    `RiverATLAS_v10_sa_north.dbf` and `RiverATLAS_v10_sa_south.dbf` into `data/raw/riveratlas/`, then
