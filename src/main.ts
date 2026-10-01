@@ -136,7 +136,8 @@ async function boot() {
           type: 'line',
           source: 'highlight',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': 0.75 },
+          // the river itself at 80%, its continuation through bigger rivers to the sea at 50%
+          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': ['case', ['get', 'own'], 0.8, 0.5] },
         },
         {
           id: 'river-names',
@@ -291,7 +292,9 @@ async function boot() {
     gradient: number | null; order: number; disAvg: number | null; disMax: number | null; disMin: number | null;
     inundPct: number | null; lakePct: number | null; lakeVolMcm: number | null; regulationPct: number | null;
     population: number | null; popDensity: number | null; water: 'white' | 'black' | 'clear' | null; note?: string;
-    path?: [number, number][]; // chain segments to the sea: [chain id, km from the start point down to that chain's mouth]
+    // chain segments to the sea: [chain id, km from the start point down to that chain's mouth, and on the segment
+    // where the river's own stretch ends, the km from that point to the chain's mouth]
+    path?: ([number, number] | [number, number, number])[];
   };
   let riverInfo: Promise<Record<string, RiverInfo>> | undefined;
   const panel = document.getElementById('river-panel')!;
@@ -371,24 +374,37 @@ async function boot() {
     return p;
   };
   const kmBetween = (a: [number, number], b: [number, number]) => Math.hypot((b[0] - a[0]) * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180), b[1] - a[1]) * 111.32;
-  const tailFrom = (c: [number, number][], km: number) => { // the last km of a course, mouth end included
-    const out: [number, number][] = [c[c.length - 1]];
-    let acc = 0;
+  // the part of a course (head to mouth) between two distances from the mouth, fromKm > toKm
+  const sliceKm = (c: [number, number][], fromKm: number, toKm: number): [number, number][] => {
+    const out: [number, number][] = [];
+    let acc = 0; // distance from the mouth, walking back
+    const at = (i: number, t: number): [number, number] => [c[i][0] + (c[i - 1][0] - c[i][0]) * t, c[i][1] + (c[i - 1][1] - c[i][1]) * t];
+    if (toKm <= 0) out.push(c[c.length - 1]);
     for (let i = c.length - 1; i > 0; i--) {
       const seg = kmBetween(c[i], c[i - 1]);
-      if (acc + seg >= km) { const t = (km - acc) / seg; out.push([c[i][0] + (c[i - 1][0] - c[i][0]) * t, c[i][1] + (c[i - 1][1] - c[i][1]) * t]); break; }
-      acc += seg; out.push(c[i - 1]);
+      if (!out.length && acc + seg > toKm) out.push(at(i, (toKm - acc) / seg)); // entry point
+      if (acc + seg >= fromKm) { out.push(at(i, (fromKm - acc) / seg)); break; } // exit point
+      acc += seg;
+      if (out.length) out.push(c[i - 1]);
     }
     return out.reverse();
   };
   let highlightSeq = 0;
-  const setHighlight = async (p: [number, number][] | undefined) => {
+  const setHighlight = async (p: RiverInfo['path']) => {
     const seq = ++highlightSeq;
     const src = map!.getSource('highlight') as maplibregl.GeoJSONSource;
     if (!p) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
     const courses = await Promise.all(p.map(([ch]) => chainCourse(ch)));
     if (seq !== highlightSeq) return; // another river was picked meanwhile
-    src.setData({ type: 'FeatureCollection', features: courses.map((c, i) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: tailFrom(c, p[i][1]) } })) });
+    const features: GeoJSON.Feature[] = [];
+    let own = true; // the river itself until the segment that carries its end point, then the continuation
+    courses.forEach((c, i) => {
+      const [, start, end] = p[i] as [number, number, number?];
+      const piece = (from: number, to: number, isOwn: boolean) => { const coords = sliceKm(c, from, to); if (coords.length > 1) features.push({ type: 'Feature', properties: { own: isOwn }, geometry: { type: 'LineString', coordinates: coords } }); };
+      if (end === undefined) piece(start, 0, own);
+      else { piece(start, end, true); piece(end, 0, false); own = false; }
+    });
+    src.setData({ type: 'FeatureCollection', features });
   };
   const clearHighlight = () => { void setHighlight(undefined); };
   const openRiver = async (rid: string) => {

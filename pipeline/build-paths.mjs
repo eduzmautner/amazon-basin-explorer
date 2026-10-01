@@ -3,6 +3,9 @@
 // The network is chained as in build-rivers.mjs (at each confluence the largest upstream reach
 // continues the chain), so a path is a short list of chain segments: [chain id, km from the start
 // point down to that chain's mouth], each continuing to the chain's mouth, the last one at the sea.
+// The segment where the river's own stretch ends (where it loses its name) carries a third value,
+// the km from that point to the chain's mouth, so the client can draw the river itself and its
+// continuation to the sea differently.
 // Inputs:  data/work/amazon.ndjson, data/work/river-sections.json (from build-riverinfo.mjs), public/riverinfo.json
 // Outputs: public/riverinfo.json gains "path" per river; public/chains/{id}.json holds each referenced
 //          chain's course head to mouth, simplified and delta-encoded as integers at 1e-5 degrees.
@@ -51,12 +54,13 @@ const info = JSON.parse(fs.readFileSync('public/riverinfo.json', 'utf8'));
 const chainsUsed = new Set();
 let hops = 0, longest = 0;
 for (const s of sections) {
-  const top = s.reaches[s.reaches.length - 1]; // the section runs mouth -> top
+  const top = s.reaches[s.reaches.length - 1], mouth = s.reaches[0]; // the section runs mouth -> top
+  const mouthChain = resolve(mouth), ownEnd = Math.round((kmToMouth.get(mouth) - reaches.get(mouth).len) * 10) / 10;
   const p = [];
   let cur = top;
   for (;;) {
     const ch = resolve(cur);
-    p.push([ch, Math.round(kmToMouth.get(cur) * 10) / 10]);
+    p.push(ch === mouthChain ? [ch, Math.round(kmToMouth.get(cur) * 10) / 10, ownEnd] : [ch, Math.round(kmToMouth.get(cur) * 10) / 10]);
     chainsUsed.add(ch);
     const next = reaches.get(ch).down;
     if (!reaches.has(next)) break;
