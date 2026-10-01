@@ -19,7 +19,7 @@ const RIVER_TEXT = { desktop: 14, phone: 12 }, COUNTRY_TEXT = { desktop: 16, pho
 const COAST_WIDTH = { desktop: 1.5, phone: 1 }, BORDER_WIDTH = 1;
 const TRAILS_WIDTH = { desktop: 2, phone: 1.5 };
 // River Trails: white, opacity by Strahler order (5% per step from 15% at order 3 and below to 50% at the
-// order 10 Amazon). The Remoteness tint is a second line over them: magenta at full opacity in a big city
+// order 10 Amazon). The Urban proximity tint is a second line over them: magenta at full opacity in a big city
 // ('rem' level 99), fading to fully transparent where no town is in reach (level 0).
 const TRAIL_OPACITY = ['*', 0.05, ['max', 3, ['coalesce', ['get', 'ord'], 3]]] as any;
 const REMOTE_COLOR = '#ff00cc'; // hsl(312, 100%, 50%): full-brightness magenta
@@ -337,7 +337,7 @@ async function boot() {
   map.on('mouseleave', 'river-names', () => cc.classList.remove('on-label'));
   document.getElementById('rp-close')!.addEventListener('click', () => { panel.hidden = true; });
 
-  // River Trails toggle, with Remoteness (the magenta tint) as a sub-item that only takes effect while the
+  // River Trails toggle, with Urban proximity (the magenta tint) as a sub-item that only takes effect while the
   // trails are on; Settlements (town dots and names) is its own toggle
   const trails = document.getElementById('trails') as HTMLInputElement;
   const remoteToggle = document.getElementById('remote') as HTMLInputElement;

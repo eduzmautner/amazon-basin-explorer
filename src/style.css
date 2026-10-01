@@ -137,7 +137,7 @@ html, body {
 .maplibregl-canvas-container.maplibregl-interactive { cursor: default !important; }
 .maplibregl-canvas-container.maplibregl-interactive:active { cursor: move !important; }
 
-/* River Trails / River Labels / Countries / Remoteness toggles: same frame as the slider box, a square check box with an X when on */
+/* River Trails / River Labels / Countries / Urban proximity toggles: same frame as the slider box, a square check box with an X when on */
 #trails-control, #labels-control, #countries-control, #remote-control, #settlements-control {
   display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin-top: -1px; cursor: pointer;
   background: var(--bg); border: 1px solid var(--border); color: var(--muted);
@@ -176,7 +176,7 @@ html, body {
 #controls .sub.off .box { border-color: var(--muted-dim); color: var(--muted-dim); }
 #controls .sub.off .legend { display: none; }
 
-/* Remoteness: the check row, then a legend strip (magenta = in a city, fading to nothing where no town is in reach) */
+/* Urban proximity: the check row, then a legend strip (magenta = in a city, fading to nothing where no town is in reach) */
 #remote-control { flex-direction: column; align-items: stretch; gap: 6px; }
 #remote-control .row { display: flex; align-items: center; gap: 8px; }
 #remote-control .legend { display: none; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 0.04em; color: var(--muted); }
