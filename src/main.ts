@@ -136,7 +136,7 @@ async function boot() {
           type: 'line',
           source: 'highlight',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': 0.9 },
+          paint: { 'line-color': HIGHLIGHT_COLOR, 'line-width': forPhone(HIGHLIGHT_WIDTH), 'line-opacity': 0.75 },
         },
         {
           id: 'river-names',
