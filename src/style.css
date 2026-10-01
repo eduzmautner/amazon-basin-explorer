@@ -7,6 +7,7 @@
   --muted: rgba(31, 36, 33, 0.55);
   --muted-dim: rgba(31, 36, 33, 0.33); /* --muted at 60% strength: idle controls */
   --panel: rgba(251, 250, 249, 0.8);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1); /* GSAP's expo.out: fast start, long settle */
   color-scheme: light;
 }
 :root[data-theme='dark'] {
@@ -207,8 +208,8 @@ html, body {
 }
 /* slides in from the left edge (desktop) or up from the bottom (phones), easing out both ways; while closed it
    sits off screen and is unreachable (visibility flips after the slide out) */
-#river-panel { transform: translateX(calc(-100% - 20px)); visibility: hidden; transition: transform .3s ease-out, visibility 0s linear .3s; }
-#river-panel.open { transform: none; visibility: visible; transition: transform .3s ease-out; }
+#river-panel { transform: translateX(calc(-100% - 20px)); visibility: hidden; transition: transform .3s var(--ease-out-expo), visibility 0s linear .3s; }
+#river-panel.open { transform: none; visibility: visible; transition: transform .3s var(--ease-out-expo); }
 @media (prefers-reduced-motion: reduce) { #river-panel, #river-panel.open, #controls, #controls.open { transition: none; } }
 #river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 #river-panel .head:has(+ .water[hidden]) { margin-bottom: 12px; } /* no water type: the same gap sits under the name */
@@ -233,10 +234,10 @@ html, body {
   /* the controls become a bottom sheet, opened from the map-options button; same sheet as the river info */
   #controls {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; max-height: 70vh; overflow: auto;
-    transform: translateY(100%); visibility: hidden; transition: transform .3s ease-out, visibility 0s linear .3s;
+    transform: translateY(100%); visibility: hidden; transition: transform .3s var(--ease-out-expo), visibility 0s linear .3s;
     background: var(--bg); border-top: 1px solid var(--border); padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   }
-  #controls.open { transform: none; visibility: visible; transition: transform .3s ease-out; }
+  #controls.open { transform: none; visibility: visible; transition: transform .3s var(--ease-out-expo); }
   #river-panel { transform: translateY(100%); }
   #river-panel.open { transform: none; }
   #controls .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
