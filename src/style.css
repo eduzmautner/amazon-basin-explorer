@@ -301,7 +301,7 @@ html, body {
   #about-close { font-size: 32px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   .zoom-control svg { width: 24px; height: 24px; }
   #river-panel {
-    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 45vh;
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 40vh;
     border-left: none; border-right: none; border-bottom: none;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
