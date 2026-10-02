@@ -52,8 +52,6 @@ html, body {
   padding: 6px 12px; border-radius: 999px; background: var(--panel); backdrop-filter: blur(6px);
 }
 #hint.fade { opacity: 0; }
-.maplibregl-ctrl-attrib { background: var(--panel) !important; color: var(--muted) !important; font-size: 10px !important; }
-.maplibregl-ctrl-attrib a { color: var(--muted) !important; }
 .maplibregl-canvas:focus { outline: none; }
 
 /* scale bar */
@@ -110,6 +108,38 @@ html, body {
 @media (hover: hover) { .zoom-control button:hover { color: var(--fg); } }
 .zoom-control button:disabled { color: var(--muted-dim); cursor: default; }
 .zoom-control button:focus-visible { outline: 1px solid var(--fg); outline-offset: -3px; }
+
+/* About button (bottom left): same box as the zoom buttons */
+.maplibregl-ctrl.about-control { margin: 0 0 12px 12px !important; background: var(--bg); border: 1px solid var(--border); }
+.about-control button {
+  width: 32px; height: 32px; padding: 0; margin: 0; border: none; background: none; cursor: pointer;
+  display: grid; place-items: center; color: var(--fg-soft); transition: color .12s ease;
+}
+.about-control svg { width: 20px; height: 20px; }
+@media (hover: hover) { .about-control button:hover { color: var(--fg); } }
+.about-control button:focus-visible { outline: 1px solid var(--fg); outline-offset: -3px; }
+
+/* About panel: a full-width sheet sliding up from the bottom, same motion as the other panels */
+#about-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; max-height: 80vh; overflow: auto;
+  background: var(--bg); border-top: 1px solid var(--border); color: var(--fg);
+  font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 13px; letter-spacing: 0.02em; line-height: 1.55;
+  padding: 20px 24px calc(24px + env(safe-area-inset-bottom));
+  transform: translateY(100%); visibility: hidden; transition: transform .35s var(--ease-out-expo), visibility 0s linear .35s;
+}
+#about-panel.open { transform: none; visibility: visible; transition: transform .35s var(--ease-out-expo); }
+#about-panel .inner { max-width: 760px; }
+#about-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+#about-panel h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+#about-panel h3 { margin: 18px 0 6px; font-size: 13px; font-weight: 700; color: var(--fg-soft); }
+#about-panel p { margin: 0; color: var(--fg-soft); }
+#about-panel a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 2px; }
+#about-panel a:hover { text-decoration-color: var(--fg); }
+#about-panel .credits { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0; color: var(--fg-soft); }
+#about-panel .credits dt { color: var(--muted); white-space: nowrap; }
+#about-panel .credits dd { margin: 0; }
+#about-close { background: none; border: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 2px; }
+#about-close:hover { color: var(--fg); }
 
 /* snapshot button: same frame as the slider box */
 #snapshot {
@@ -210,7 +240,7 @@ html, body {
    sits off screen and is unreachable (visibility flips after the slide out) */
 #river-panel { transform: translateX(calc(-100% - 20px)); visibility: hidden; transition: transform .35s var(--ease-out-expo), visibility 0s linear .35s; }
 #river-panel.open { transform: none; visibility: visible; transition: transform .35s var(--ease-out-expo); }
-@media (prefers-reduced-motion: reduce) { #river-panel, #river-panel.open, #controls, #controls.open { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #river-panel, #river-panel.open, #controls, #controls.open, #about-panel, #about-panel.open { transition: none; } }
 #river-panel .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 #river-panel .head:has(+ .water[hidden]) { margin-bottom: 12px; } /* no water type: the same gap sits under the name */
 #river-panel h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } /* tight, mid-century tracking */
@@ -261,7 +291,14 @@ html, body {
   #visible::-moz-range-thumb { width: 16px; height: 16px; }
   #trails-control .box, #labels-control .box, #countries-control .box, #remote-control .box, #settlements-control .box { width: 16px; height: 16px; font-size: 14px; }
   #snapshot { margin-top: 8px; }
-  .zoom-control button, .options-control button { width: 40px; height: 40px; } /* thumb-sized */
+  .zoom-control button, .options-control button, .about-control button { width: 40px; height: 40px; } /* thumb-sized */
+  .about-control svg { width: 24px; height: 24px; }
+  #about-panel { font-size: 16px; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); max-height: 85vh; }
+  #about-panel h2 { font-size: 28px; }
+  #about-panel h3 { font-size: 15px; }
+  #about-panel .credits { grid-template-columns: 1fr; gap: 2px; }
+  #about-panel .credits dt { margin-top: 10px; }
+  #about-close { font-size: 32px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   .zoom-control svg { width: 24px; height: 24px; }
   #river-panel {
     left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 50vh;

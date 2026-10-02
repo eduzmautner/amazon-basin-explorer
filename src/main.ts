@@ -7,6 +7,7 @@ import { installInertialZoom } from './inertia';
 import { MiniMapControl } from './minimap';
 import { ZoomControl } from './zoomcontrol';
 import { OptionsControl } from './optionscontrol';
+import { AboutControl } from './aboutcontrol';
 import { BASE } from './base';
 
 const THEME_KEY = 'amazon-explorer-theme';
@@ -242,7 +243,11 @@ async function boot() {
   });
   map.touchZoomRotate.disableRotation();
   map.keyboard.disable();
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // the about panel carries the data credits in place of MapLibre's compact attribution
+  const about = document.getElementById('about-panel')!;
+  const openAbout = (on: boolean) => { about.classList.toggle('open', on); if (on) { document.getElementById('river-panel')!.classList.remove('open'); document.getElementById('controls')!.classList.remove('open'); } };
+  map.addControl(new AboutControl(() => openAbout(!about.classList.contains('open'))), 'bottom-left');
+  document.getElementById('about-close')!.addEventListener('click', () => openAbout(false));
   const UNITS_KEY = 'amazon-explorer-units';
   type Units = 'imperial' | 'metric';
   let units: Units = 'imperial';
@@ -254,11 +259,9 @@ async function boot() {
   map.addControl(new ZoomControl(), 'bottom-right'); // above the minimap, or right above the scale bar while that is hidden
   // phones: the controls live in a bottom sheet opened from this button (CSS hides the button on wider screens)
   const controls = document.getElementById('controls')!;
-  const openOptions = (on: boolean) => { controls.classList.toggle('open', on); if (on) document.getElementById('river-panel')!.classList.remove('open'); };
+  const openOptions = (on: boolean) => { controls.classList.toggle('open', on); if (on) { document.getElementById('river-panel')!.classList.remove('open'); openAbout(false); } };
   map.addControl(new OptionsControl(() => openOptions(!controls.classList.contains('open'))), 'bottom-right');
   document.getElementById('controls-close')!.addEventListener('click', () => openOptions(false));
-  // start collapsed to the (i) button; MapLibre opens it once the style loads
-  map.once('load', () => document.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'));
   installInertialZoom(map);
 
   const hint = document.getElementById('hint')!;
@@ -310,6 +313,7 @@ async function boot() {
   type Row = [string, string] | [string, string, () => void]; // label, value, optional click action on the value
   const RIVER_CREDIT = document.getElementById('rp-credit')!.textContent!;
   const fillPanel = (title: string, subtitle: string, note: string, rows: Row[], credit = RIVER_CREDIT) => {
+    openAbout(false);
     document.getElementById('rp-credit')!.textContent = credit;
     openOptions(false); // one bottom sheet at a time on phones
     rpName.textContent = title;
