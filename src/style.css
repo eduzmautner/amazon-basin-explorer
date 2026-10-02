@@ -293,7 +293,7 @@ html, body {
   #snapshot { margin-top: 8px; }
   .zoom-control button, .options-control button, .about-control button { width: 40px; height: 40px; } /* thumb-sized */
   .about-control svg { width: 24px; height: 24px; }
-  #about-panel { font-size: 16px; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); max-height: 85vh; }
+  #about-panel { font-size: 16px; padding: calc(16px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); max-height: 100%; top: 0; }
   #about-panel h2 { font-size: 28px; }
   #about-panel h3 { font-size: 15px; }
   #about-panel .credits { grid-template-columns: 1fr; gap: 2px; }
@@ -301,7 +301,7 @@ html, body {
   #about-close { font-size: 32px; padding: 0; width: 44px; height: 44px; display: grid; place-items: center; margin: -8px -10px 0 0; }
   .zoom-control svg { width: 24px; height: 24px; }
   #river-panel {
-    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 50vh;
+    left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 45vh;
     border-left: none; border-right: none; border-bottom: none;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
